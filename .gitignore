@@ -1,0 +1,31 @@
+# Generated Prisma client
+backend/src/generated/
+backend/node_modules/.prisma/
+
+# Secrets & Keys
+backend/firebase-service-account.json
+backend/.env
+*.env
+*.pem
+*.key
+
+# Dependencies
+node_modules/
+ShahkotApp/node_modules/
+backend/node_modules/
+
+# Expo / React Native
+ShahkotApp/.expo/
+ShahkotApp/dist/
+ShahkotApp/.cache/
+
+# Build output
+backend/dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

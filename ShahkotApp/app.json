@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Shahkot Tigers",
+    "slug": "shahkot-tigers",
+    "version": "1.0.1",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0C8A43"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.salman38.shahkotapp"
+    },
+    "android": {
+      "package": "com.salman38.shahkotapp",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0C8A43"
+      },
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "f3c2ce5a-11f8-4618-9f39-54bd3d7bfbb0"
+      }
+    }
+  }
+}
