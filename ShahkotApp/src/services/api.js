@@ -150,12 +150,10 @@ export const chatAPI = {
     images: data.images || [],
     videos: [],
     voiceUrl: data.voiceUrl || null,
+    voiceDuration: data.voiceDuration || null,
     replyToId: data.replyToId || null,
   }),
-  uploadVoice: (formData) => api.post('/chat/voice', formData, {
-    headers: { 'Content-Type': undefined }, // Let RN XHR set multipart boundary automatically
-    transformRequest: [(data) => data],     // Prevent axios from JSON-serializing FormData
-  }),
+  uploadVoice: (data) => api.post('/chat/voice', data),
   getUserProfile: (userId) => api.get(`/chat/user/${userId}`),
   reactToMessage: (msgId, emoji) => api.post(`/chat/messages/${msgId}/react`, { emoji }),
   reportMessage: (data) => api.post('/chat/report', data),

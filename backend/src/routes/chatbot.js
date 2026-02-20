@@ -60,29 +60,96 @@ Reply in simple Urdu-English mix (Roman Urdu) that Shahkot people would understa
 // Helper: wait for ms milliseconds
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Helper: call LongCat API once
+// Retry config
+const MAX_RETRIES = 3;
+const RETRY_DELAYS = [2000, 4000, 6000]; // escalating backoff
+const REQUEST_TIMEOUT = 15000; // 15s per attempt
+
+// Helper: call LongCat API once with abort timeout
 async function callLongCat(apiKey, apiUrl, model, message) {
-    return fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            model,
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: message.trim() },
-            ],
-            max_tokens: 1000,
-            temperature: 0.7,
-        }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+
+    try {
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                model,
+                messages: [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    { role: 'user', content: message.trim() },
+                ],
+                max_tokens: 1000,
+                temperature: 0.7,
+            }),
+            signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        return response;
+    } catch (err) {
+        clearTimeout(timeout);
+        throw err;
+    }
+}
+
+// Helper: call with retries + exponential backoff
+async function callWithRetries(apiKey, apiUrl, model, message) {
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+            const response = await callLongCat(apiKey, apiUrl, model, message);
+            if (response.ok) {
+                const data = await response.json();
+                return data.choices?.[0]?.message?.content || null;
+            }
+            console.warn(`LongCat attempt ${attempt + 1}/${MAX_RETRIES} failed: HTTP ${response.status}`);
+        } catch (err) {
+            console.warn(`LongCat attempt ${attempt + 1}/${MAX_RETRIES} error: ${err.message}`);
+        }
+        if (attempt < MAX_RETRIES - 1) {
+            await wait(RETRY_DELAYS[attempt]);
+        }
+    }
+    return null; // all retries failed
+}
+
+// Keyword-based fallback when AI API is completely down
+function getFallbackReply(message) {
+    const msg = message.toLowerCase();
+    if (msg.includes('buy') || msg.includes('sell') || msg.includes('marketplace') || msg.includes('listing'))
+        return '🛒 Buy & Sell ke liye Home screen pe "Buy & Sell" icon tap karein. Wahan aap apni cheezein bech sakte hain ya khareed sakte hain. Seller ka WhatsApp number hota hai — tap karke directly contact kar sakte hain! 📱';
+    if (msg.includes('rishta') || msg.includes('shaadi') || msg.includes('marriage'))
+        return '💍 Rishta feature ke liye bottom tab pe "Rishta" tap karein. Pehle apna profile banayein CNIC ke saath, phir Admin verify karega. Verify hone ke baad aap doosron ke profiles dekh sakte hain aur DM bhej sakte hain.';
+    if (msg.includes('tournament') || msg.includes('cricket') || msg.includes('match') || msg.includes('sports'))
+        return '🏏 Tournaments ke liye Home screen ya Explore mein "Sports" tap karein. Koi bhi user tournament bana sakta hai — cricket, football, kabaddi etc. Match schedule add karein aur results update karein! 🏆';
+    if (msg.includes('blood') || msg.includes('donor') || msg.includes('khoon'))
+        return '🩸 Blood Donation ke liye Home screen pe "Blood" icon tap karein. Wahan aap apna blood group register kar sakte hain aur donors dhundh sakte hain. Emergency donors highlighted hote hain!';
+    if (msg.includes('chat') || msg.includes('message') || msg.includes('group'))
+        return '💬 Open Chat community ka public chatroom hai — bottom tab pe "Chat" tap karein phir "Open Chat" select karein. Yahan text, images, aur voice messages bhej sakte hain. Reply aur reactions bhi hain!';
+    if (msg.includes('news') || msg.includes('khabar'))
+        return '📰 News ke liye Home se "News" ya Explore mein "News & Articles" tap karein. Local news, sports, politics sab categories hain. News Reporters admin-approved users hote hain.';
+    if (msg.includes('weather') || msg.includes('mosam'))
+        return '🌤️ Weather ke liye Home screen pe "Weather" icon tap karein. Shahkot ka current weather aur forecast dekhein!';
+    if (msg.includes('shop') || msg.includes('bazar') || msg.includes('dukan'))
+        return '🏪 Bazar Finder ke liye Home se "Bazar" tap karein. Product name search karein aur Shahkot ki dukanen dhundhein — unka address, contact number sab milega!';
+    if (msg.includes('govt') || msg.includes('office') || msg.includes('sarkari'))
+        return '🏛️ Govt Offices ka directory Home screen pe available hai — "Govt Offices" tap karein. Address, helpline numbers, aur timings sab milenge.';
+    if (msg.includes('dm') || msg.includes('private') || msg.includes('direct'))
+        return '📨 DM (Direct Message) bhejne ke liye kisi bhi user ki profile pe jaayein aur "Message" tap karein. Rishta profiles se bhi DM bhej sakte hain.';
+    if (msg.includes('live') || msg.includes('stream') || msg.includes('event'))
+        return '📺 Live Events admin post karta hai — YouTube/Facebook stream URLs ke saath. Home screen pe "Live Events" mein dekhein!';
+    if (msg.includes('help') || msg.includes('kaise') || msg.includes('how'))
+        return '📖 App kaise use karein:\n\n1️⃣ Home screen pe sab features hain\n2️⃣ Bottom tabs: Home, Buy & Sell, Chat, Rishta, Profile\n3️⃣ Explore page se kuch bhi search karein\n4️⃣ Notifications bell icon se check karein\n\nKoi specific sawal ho to poochiye! 😊';
+    // Default fallback
+    return '🤖 Main Shahkot App ka AI Helper hoon! Mujhse app ke baare mein poochiye — Buy & Sell, Rishta, Chat, Tournaments, Blood Donation, ya koi bhi feature. Abhi AI thoda busy hai, lekin main basic sawaalon ka jawab de sakta hoon! 💬';
 }
 
 /**
  * POST /api/chatbot/message
- * Send a message to the AI chatbot (retries once after 4s if first attempt fails)
+ * Send a message to the AI chatbot (3 retries with exponential backoff + offline fallback)
  */
 router.post('/message', authenticate, async (req, res) => {
     try {
@@ -97,33 +164,24 @@ router.post('/message', authenticate, async (req, res) => {
         const model = process.env.LONGCAT_MODEL || 'LongCat-Flash-Chat';
 
         if (!apiKey) {
-            return res.status(500).json({ error: 'AI chatbot is not configured.' });
+            // No API key — use fallback
+            return res.json({ reply: getFallbackReply(message) });
         }
 
-        // First attempt
-        let response = await callLongCat(apiKey, apiUrl, model, message);
+        // Try API with retries
+        const reply = await callWithRetries(apiKey, apiUrl, model, message);
 
-        // If first attempt fails, wait 4 seconds then retry once
-        if (!response.ok) {
-            console.warn(`LongCat API first attempt failed (${response.status}). Retrying in 4 seconds...`);
-            await wait(4000);
-            response = await callLongCat(apiKey, apiUrl, model, message);
+        if (reply) {
+            return res.json({ reply });
         }
 
-        // If retry also fails, return error
-        if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            console.error('LongCat API error after retry:', response.status, errData);
-            return res.status(502).json({ error: 'AI service temporarily unavailable. Please try again.' });
-        }
-
-        const data = await response.json();
-        const reply = data.choices?.[0]?.message?.content || 'Sorry, I could not understand. Please try again.';
-
-        res.json({ reply });
+        // All retries failed — use keyword fallback instead of error
+        console.warn('All LongCat retries exhausted, using fallback response');
+        return res.json({ reply: getFallbackReply(message) });
     } catch (error) {
         console.error('Chatbot error:', error);
-        res.status(500).json({ error: 'Failed to get AI response.' });
+        // Even on unexpected errors, give a useful fallback
+        return res.json({ reply: getFallbackReply(req.body?.message || '') });
     }
 });
 

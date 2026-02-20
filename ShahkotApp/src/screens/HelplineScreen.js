@@ -6,32 +6,61 @@ import {
 import { COLORS } from '../config/constants';
 
 const HELPLINES = [
-    { name: 'Rescue 1122', number: '1122', icon: '🚑', desc: 'Emergency Health & Rescue', color: '#E53935', category: 'Emergency' },
-    { name: 'Police', number: '15', icon: '🚔', desc: 'Police Emergency', color: '#1565C0', category: 'Emergency' },
+    // === EMERGENCY ===
+    { name: 'Rescue 1122', number: '1122', icon: '🚑', desc: 'Emergency Health & Rescue Punjab', color: '#E53935', category: 'Emergency' },
+    { name: 'Police Emergency', number: '15', icon: '🚔', desc: 'Police Emergency Helpline', color: '#1565C0', category: 'Emergency' },
     { name: 'Fire Brigade', number: '16', icon: '🚒', desc: 'Fire Emergency', color: '#FF6F00', category: 'Emergency' },
     { name: 'Edhi Foundation', number: '115', icon: '🏥', desc: 'Ambulance & Social Services', color: '#2E7D32', category: 'Emergency' },
-    { name: 'Motorway Police', number: '130', icon: '🛣️', desc: 'Motorway Assistance', color: '#00695C', category: 'Police' },
-    { name: 'Bomb Disposal', number: '15', icon: '💣', desc: 'Bomb Threat & Disposal', color: '#4E342E', category: 'Emergency' },
-    { name: 'CPLC', number: '1166', icon: '📞', desc: 'Citizens-Police Liaison Committee', color: '#283593', category: 'Police' },
-    { name: 'Women Protection', number: '8787', icon: '👩', desc: 'Women Safety Helpline', color: '#AD1457', category: 'Protection' },
-    { name: 'Child Protection', number: '1121', icon: '👶', desc: 'Child Abuse & Protection', color: '#F57C00', category: 'Protection' },
-    { name: 'WASA', number: '1199', icon: '💧', desc: 'Water & Sanitation', color: '#0277BD', category: 'Utility' },
-    { name: 'Sui Gas', number: '1199', icon: '🔥', desc: 'Gas Emergency', color: '#E65100', category: 'Utility' },
-    { name: 'LESCO', number: '132', icon: '⚡', desc: 'Electricity Complaints', color: '#F9A825', category: 'Utility' },
-    { name: 'NADRA', number: '9211', icon: '🪪', desc: 'ID Card & Registration', color: '#1B5E20', category: 'Government' },
-    { name: 'Railways', number: '1300', icon: '🚂', desc: 'Pakistan Railways Info', color: '#37474F', category: 'Transport' },
+
+    // === CM PUNJAB / GOVERNMENT COMPLAINTS ===
+    { name: 'CM Complaint Center', number: '0800-02345', icon: '📋', desc: 'Chief Minister Punjab Complaint Center (Toll Free)', color: '#1A237E', category: 'CM Punjab' },
+    { name: 'CM Punjab (1000)', number: '1000', icon: '📞', desc: 'CM Complaint Center Short Code', color: '#283593', category: 'CM Punjab' },
+    { name: 'Suthra Punjab', number: '0800-02345', icon: '🧹', desc: 'Clean Punjab Complaints (CM Office)', color: '#00897B', category: 'CM Punjab' },
+    { name: 'Citizen Facilitation', number: '0800-09100', icon: '🏠', desc: 'CFC, Apni Chat Apna Ghar, e-Construction', color: '#4527A0', category: 'CM Punjab' },
+    { name: 'Dastak - Doorstep', number: '1202', icon: '🚪', desc: 'Doorstep Service Delivery Punjab', color: '#00695C', category: 'CM Punjab' },
+    { name: 'PM Complaint Portal', number: '1389', icon: '📋', desc: 'Prime Minister Citizen Portal', color: '#1A237E', category: 'Government' },
+    { name: 'Anti-Corruption', number: '1020', icon: '⚖️', desc: 'Anti-Corruption Hotline Punjab', color: '#D50000', category: 'Government' },
+    { name: 'Human Rights & Minorities', number: '1040', icon: '🤝', desc: 'Human Rights & Minority Affairs', color: '#6A1B9A', category: 'CM Punjab' },
+    { name: 'Social Welfare', number: '1312', icon: '💝', desc: 'Social Welfare & Bait-ul-Maal', color: '#AD1457', category: 'CM Punjab' },
+
+    // === POLICE ===
+    { name: 'Motorway Police', number: '130', icon: '🛣️', desc: 'Motorway Assistance & Safety', color: '#00695C', category: 'Police' },
+    { name: 'Punjab Police Women', number: '8787', icon: '👩', desc: 'Women Safety Helpline Punjab Police', color: '#AD1457', category: 'Police' },
+    { name: 'Counter Narcotics', number: '1012', icon: '🚫', desc: 'Punjab Counter Narcotics Force', color: '#4E342E', category: 'Police' },
+
+    // === PROTECTION ===
+    { name: 'Child Protection', number: '1121', icon: '👶', desc: 'Child Abuse Helpline Punjab', color: '#F57C00', category: 'Protection' },
+
+    // === UTILITIES ===
+    { name: 'LESCO (Electricity)', number: '132', icon: '⚡', desc: 'LESCO Complaints & Outages', color: '#F9A825', category: 'Utility' },
+    { name: 'WASA (Water)', number: '1199', icon: '💧', desc: 'Water Supply & Sewerage', color: '#0277BD', category: 'Utility' },
+    { name: 'Sui Gas (SNGPL)', number: '1223', icon: '🔥', desc: 'SNGPL Gas Emergency & Complaints', color: '#E65100', category: 'Utility' },
+    { name: 'Excise & Taxation', number: '0800-08786', icon: '🧾', desc: 'Tax & Vehicle Registration', color: '#5D4037', category: 'Utility' },
+
+    // === HEALTH ===
+    { name: 'Drug Abuse Helpline', number: '0800-12345', icon: '💊', desc: 'National Drug Abuse Helpline', color: '#880E4F', category: 'Health' },
+    { name: 'Mental Health', number: '0311-7786264', icon: '🧠', desc: 'Umang Mental Health Helpline', color: '#6A1B9A', category: 'Health' },
+    { name: 'Blood Donors', number: '0800-22444', icon: '🩸', desc: 'Sundas Foundation Blood Info', color: '#B71C1C', category: 'Health' },
+
+    // === GOVERNMENT ===
+    { name: 'NADRA', number: '9211', icon: '🪪', desc: 'CNIC & Registration', color: '#1B5E20', category: 'Government' },
+    { name: 'Postal Service', number: '111-172-172', icon: '📮', desc: 'Pakistan Post Complaints', color: '#E64A19', category: 'Government' },
+    { name: 'Agriculture Dept', number: '1063', icon: '🌾', desc: 'Agriculture Punjab Helpline', color: '#33691E', category: 'Government' },
+    { name: 'Livestock & Dairy', number: '0800-09211', icon: '🐄', desc: 'Livestock Department Punjab', color: '#795548', category: 'Government' },
+    { name: 'School Education', number: '111-112-020', icon: '🏫', desc: 'Education Department Punjab', color: '#1565C0', category: 'Government' },
+    { name: 'Labour Department', number: '1314', icon: '👷', desc: 'Labour & HR Punjab', color: '#37474F', category: 'Government' },
+    { name: 'Tourism Punjab', number: '1421', icon: '🏔️', desc: 'Tourism Department Helpline', color: '#00838F', category: 'Government' },
+    { name: 'eBiz Punjab', number: '1284', icon: '💼', desc: 'Business Registration Online', color: '#2E7D32', category: 'Government' },
+    { name: 'Overseas Pakistanis', number: '111-672-672', icon: '🌍', desc: 'Overseas Pakistani Commission', color: '#0D47A1', category: 'Government' },
+
+    // === TRANSPORT ===
+    { name: 'Railways', number: '117', icon: '🚂', desc: 'Pakistan Railways Information', color: '#37474F', category: 'Transport' },
+    { name: 'Airport Info', number: '114', icon: '🛬', desc: 'Airport Information Lahore', color: '#0D47A1', category: 'Transport' },
+    { name: 'Punjab Masstransit', number: '1762', icon: '🚌', desc: 'Metro Bus / Orange Line', color: '#E65100', category: 'Transport' },
     { name: 'PIA', number: '111-786-786', icon: '✈️', desc: 'Pakistan International Airlines', color: '#006064', category: 'Transport' },
-    { name: 'Revenue', number: '042-99210012', icon: '🏛️', desc: 'Revenue & Tax', color: '#4A148C', category: 'Government' },
-    { name: 'Anti-Corruption', number: '1020', icon: '⚖️', desc: 'Anti-Corruption Hotline', color: '#D50000', category: 'Government' },
-    { name: 'PM Complaint Cell', number: '1389', icon: '📋', desc: 'Citizen Complaint Portal', color: '#1A237E', category: 'Government' },
-    { name: 'Drug Abuse', number: '0800-12345', icon: '💊', desc: 'Drug Abuse Helpline', color: '#880E4F', category: 'Health' },
-    { name: 'Mental Health', number: '0311-7786264', icon: '🧠', desc: 'Mental Health Support', color: '#6A1B9A', category: 'Health' },
-    { name: 'Blood Donors', number: '0800-22444', icon: '🩸', desc: 'Blood Donation Info', color: '#B71C1C', category: 'Health' },
-    { name: 'Airport Info', number: '114', icon: '🛬', desc: 'Airport Information', color: '#0D47A1', category: 'Transport' },
-    { name: 'Postal Service', number: '111-172-172', icon: '📮', desc: 'Pakistan Post', color: '#E64A19', category: 'Government' },
 ];
 
-const CATEGORIES = ['All', 'Emergency', 'Police', 'Protection', 'Utility', 'Government', 'Transport', 'Health'];
+const CATEGORIES = ['All', 'Emergency', 'CM Punjab', 'Police', 'Protection', 'Utility', 'Government', 'Transport', 'Health'];
 
 export default function HelplineScreen({ navigation }) {
     const [search, setSearch] = useState('');
@@ -56,7 +85,7 @@ export default function HelplineScreen({ navigation }) {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backBtn}>← Back</Text>
+                    <Text style={styles.backBtn}>< Back</Text>
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>📞 Helplines</Text>
                 <View style={{ width: 50 }} />

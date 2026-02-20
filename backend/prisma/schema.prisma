@@ -357,7 +357,8 @@ model ChatMessage {
   text      String?
   images    String[]
   videos    String[]
-  voiceUrl  String?
+  voiceUrl       String?
+  voiceDuration  Int?     // duration in seconds
   replyToId String?
   createdAt DateTime @default(now())
 

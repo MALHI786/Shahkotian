@@ -3,9 +3,7 @@ const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { authenticate } = require('../middleware/auth');
-const multer = require('multer');
 const { uploadAudioToCloudinary } = require('../utils/cloudinaryUpload');
-const audioUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // Get chat messages (paginated)
 router.get('/messages', authenticate, async (req, res) => {
@@ -45,11 +43,16 @@ router.get('/messages', authenticate, async (req, res) => {
     }
 });
 
-// Upload voice message
-router.post('/voice', authenticate, audioUpload.single('audio'), async (req, res) => {
+// Upload voice message — accepts base64 audio from React Native
+router.post('/voice', authenticate, async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
-        const url = await uploadAudioToCloudinary(req.file.buffer);
+        const { audioBase64 } = req.body;
+        if (!audioBase64) return res.status(400).json({ error: 'No audio data provided' });
+
+        const buffer = Buffer.from(audioBase64, 'base64');
+        console.log(`Voice upload: received ${(buffer.length / 1024).toFixed(1)}KB audio`);
+        const url = await uploadAudioToCloudinary(buffer);
+        console.log('Voice uploaded to:', url);
         res.json({ voiceUrl: url });
     } catch (error) {
         console.error('Voice upload error:', error);
@@ -60,7 +63,7 @@ router.post('/voice', authenticate, audioUpload.single('audio'), async (req, res
 // Send message
 router.post('/messages', authenticate, async (req, res) => {
     try {
-        const { text, images = [], videos = [], voiceUrl, replyToId } = req.body;
+        const { text, images = [], videos = [], voiceUrl, voiceDuration, replyToId } = req.body;
 
         if (!text && images.length === 0 && videos.length === 0 && !voiceUrl) {
             return res.status(400).json({ error: 'Message cannot be empty' });
@@ -79,6 +82,7 @@ router.post('/messages', authenticate, async (req, res) => {
                 images,
                 videos,
                 voiceUrl: voiceUrl || null,
+                voiceDuration: voiceDuration ? parseInt(voiceDuration) : null,
                 replyToId: replyToId || null,
             },
             include: {

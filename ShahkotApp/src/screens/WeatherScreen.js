@@ -107,7 +107,7 @@ export default function WeatherScreen({ navigation }) {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtn}>← Back</Text>
+            <Text style={styles.backBtn}>< Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Shahkot Weather</Text>
           <View style={{ width: 50 }} />
@@ -125,7 +125,7 @@ export default function WeatherScreen({ navigation }) {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtn}>← Back</Text>
+            <Text style={styles.backBtn}>< Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Shahkot Weather</Text>
           <View style={{ width: 50 }} />
@@ -149,7 +149,7 @@ export default function WeatherScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>← Back</Text>
+          <Text style={styles.backBtn}>< Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Shahkot Weather</Text>
         <TouchableOpacity onPress={() => { setRefreshing(true); fetchWeather(); }}>

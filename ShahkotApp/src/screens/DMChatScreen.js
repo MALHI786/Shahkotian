@@ -86,7 +86,7 @@ export default function DMChatScreen({ route, navigation }) {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backBtn}>← Back</Text>
+                    <Text style={styles.backBtn}>< Back</Text>
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
                     {otherUser?.photoUrl ? (

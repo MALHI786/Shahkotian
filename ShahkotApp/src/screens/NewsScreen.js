@@ -173,7 +173,7 @@ export default function NewsScreen() {
           <View style={styles.container}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setSelectedArticle(null)}>
-                <Text style={styles.backBtn}>← Back</Text>
+                <Text style={styles.backBtn}>< Back</Text>
               </TouchableOpacity>
               {isAdmin && (
                 <TouchableOpacity onPress={() => handleDelete(selectedArticle.id)}>
@@ -206,7 +206,7 @@ export default function NewsScreen() {
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowCreate(false)}>
-              <Text style={styles.backBtn}>← Cancel</Text>
+              <Text style={styles.backBtn}>< Cancel</Text>
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Publish Article</Text>
             <View style={{ width: 60 }} />

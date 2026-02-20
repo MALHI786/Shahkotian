@@ -120,33 +120,33 @@ export default function ProfileScreen({ navigation }) {
         <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Feed')}>
           <Text style={styles.actionIcon}>📝</Text>
           <Text style={styles.actionText}>My Posts</Text>
-          <Text style={styles.actionArrow}>→</Text>
+          <Text style={styles.actionArrow}>></Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Market')}>
           <Text style={styles.actionIcon}>🛒</Text>
           <Text style={styles.actionText}>My Listings</Text>
-          <Text style={styles.actionArrow}>→</Text>
+          <Text style={styles.actionArrow}>></Text>
         </TouchableOpacity>
 
         {isAdmin && (
           <TouchableOpacity style={[styles.actionButton, styles.adminAction]} onPress={() => navigation.navigate('AdminDashboard')}>
             <Text style={styles.actionIcon}>⚙️</Text>
             <Text style={[styles.actionText, { color: COLORS.primary }]}>Admin Dashboard</Text>
-            <Text style={styles.actionArrow}>→</Text>
+            <Text style={styles.actionArrow}>></Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity style={styles.actionButton} onPress={showPhotoOptions}>
           <Text style={styles.actionIcon}>📸</Text>
           <Text style={styles.actionText}>Change Profile Photo</Text>
-          <Text style={styles.actionArrow}>→</Text>
+          <Text style={styles.actionArrow}>></Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.actionButton, styles.logoutButton]} onPress={handleLogout}>
           <Text style={styles.actionIcon}>🚪</Text>
           <Text style={[styles.actionText, { color: COLORS.error }]}>Logout</Text>
-          <Text style={styles.actionArrow}>→</Text>
+          <Text style={styles.actionArrow}>></Text>
         </TouchableOpacity>
       </View>
       <View style={{ height: 40 }} />

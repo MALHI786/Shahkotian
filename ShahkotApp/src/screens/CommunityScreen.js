@@ -45,7 +45,7 @@ export default function CommunityScreen({ navigation }) {
               <Text style={styles.cardTitle}>{tab.label}</Text>
               <Text style={styles.cardDesc}>{tab.desc}</Text>
             </View>
-            <Text style={styles.cardArrow}>→</Text>
+            <Text style={styles.cardArrow}>></Text>
           </TouchableOpacity>
         ))}
       </ScrollView>

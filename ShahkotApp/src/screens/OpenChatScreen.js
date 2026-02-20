@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI } from '../services/api';
 
@@ -74,7 +75,7 @@ export default function OpenChatScreen({ navigation }) {
                     if (prev.length === 0) return msgs;
                     const existingIds = new Set(prev.map(m => m.id));
                     const newMsgs = msgs.filter(m => !existingIds.has(m.id));
-                    if (newMsgs.length === 0) return prev; // no change → no re-render
+                    if (newMsgs.length === 0) return prev; // no change > no re-render
                     return [...prev, ...newMsgs];
                 });
             }
@@ -177,23 +178,28 @@ export default function OpenChatScreen({ navigation }) {
         setSending(true);
         setUploadingVoice(true);
         try {
-            // 1. Upload audio file to backend → Cloudinary
-            const form = new FormData();
-            form.append('audio', { uri, type: 'audio/m4a', name: `voice_${Date.now()}.m4a` });
-            const upRes = await chatAPI.uploadVoice(form);
+            // 1. Read audio file as base64 (avoids FormData issues in React Native)
+            const base64 = await FileSystem.readAsStringAsync(uri, {
+                encoding: FileSystem.EncodingType.Base64,
+            });
+
+            // 2. Upload base64 audio to backend > Cloudinary
+            const upRes = await chatAPI.uploadVoice({ audioBase64: base64 });
             const voiceUrl = upRes.data.voiceUrl;
 
-            // 2. Send message with voiceUrl
+            // 3. Send message with voiceUrl + duration
             await chatAPI.sendMessage({
                 text: null,
                 images: [],
                 voiceUrl,
+                voiceDuration: dur,
                 replyToId: replyTo?.id || null,
             });
             setReplyTo(null);
             await loadMessages(1);
             setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 300);
         } catch (err) {
+            console.error('Voice send error:', err);
             Alert.alert('Error', 'Failed to send voice message.');
         } finally {
             setSending(false);

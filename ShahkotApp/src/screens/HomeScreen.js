@@ -125,7 +125,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>🔥 Trending Listings</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Market')}>
-              <Text style={styles.seeAll}>See All →</Text>
+              <Text style={styles.seeAll}>See All ></Text>
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
@@ -152,7 +152,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>📰 Latest News</Text>
             <TouchableOpacity onPress={() => navigation.navigate('News & Articles')}>
-              <Text style={styles.seeAll}>See All →</Text>
+              <Text style={styles.seeAll}>See All ></Text>
             </TouchableOpacity>
           </View>
           {latestNews.map((item) => (
@@ -175,7 +175,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>🏏 Upcoming Tournaments</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Tournaments')}>
-              <Text style={styles.seeAll}>See All →</Text>
+              <Text style={styles.seeAll}>See All ></Text>
             </TouchableOpacity>
           </View>
           {upcomingMatches.map((item) => (
@@ -200,7 +200,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>📢 Recent Posts</Text>
             <TouchableOpacity onPress={() => navigation.navigate('Community')}>
-              <Text style={styles.seeAll}>See All →</Text>
+              <Text style={styles.seeAll}>See All ></Text>
             </TouchableOpacity>
           </View>
           {recentPosts.map((item) => (

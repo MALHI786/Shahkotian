@@ -158,7 +158,7 @@ export default function AdminDashboardScreen({ navigation }) {
         <TouchableOpacity style={styles.alertCard} onPress={() => setActiveTab('Rishta')}>
           <Text style={styles.alertIcon}>⚠️</Text>
           <Text style={styles.alertText}>{stats.stats.pendingRishta} pending rishta approvals</Text>
-          <Text style={styles.alertArrow}>→</Text>
+          <Text style={styles.alertArrow}>></Text>
         </TouchableOpacity>
       )}
 
@@ -361,7 +361,7 @@ export default function AdminDashboardScreen({ navigation }) {
     <View style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>← Back</Text>
+          <Text style={styles.backBtn}>< Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Admin Dashboard</Text>
         <View style={{ width: 50 }} />
