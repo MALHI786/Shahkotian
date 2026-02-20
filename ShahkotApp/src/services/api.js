@@ -153,7 +153,8 @@ export const chatAPI = {
     replyToId: data.replyToId || null,
   }),
   uploadVoice: (formData) => api.post('/chat/voice', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    headers: { 'Content-Type': undefined }, // Let RN XHR set multipart boundary automatically
+    transformRequest: [(data) => data],     // Prevent axios from JSON-serializing FormData
   }),
   getUserProfile: (userId) => api.get(`/chat/user/${userId}`),
   reactToMessage: (msgId, emoji) => api.post(`/chat/messages/${msgId}/react`, { emoji }),

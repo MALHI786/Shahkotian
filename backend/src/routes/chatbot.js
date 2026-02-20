@@ -57,9 +57,32 @@ IMPORTANT RULES:
 
 Reply in simple Urdu-English mix (Roman Urdu) that Shahkot people would understand. Keep answers short and helpful. Use emojis to be friendly.`;
 
+// Helper: wait for ms milliseconds
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper: call LongCat API once
+async function callLongCat(apiKey, apiUrl, model, message) {
+    return fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            model,
+            messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: message.trim() },
+            ],
+            max_tokens: 1000,
+            temperature: 0.7,
+        }),
+    });
+}
+
 /**
  * POST /api/chatbot/message
- * Send a message to the AI chatbot
+ * Send a message to the AI chatbot (retries once after 4s if first attempt fails)
  */
 router.post('/message', authenticate, async (req, res) => {
     try {
@@ -77,26 +100,20 @@ router.post('/message', authenticate, async (req, res) => {
             return res.status(500).json({ error: 'AI chatbot is not configured.' });
         }
 
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model,
-                messages: [
-                    { role: 'system', content: SYSTEM_PROMPT },
-                    { role: 'user', content: message.trim() },
-                ],
-                max_tokens: 1000,
-                temperature: 0.7,
-            }),
-        });
+        // First attempt
+        let response = await callLongCat(apiKey, apiUrl, model, message);
 
+        // If first attempt fails, wait 4 seconds then retry once
+        if (!response.ok) {
+            console.warn(`LongCat API first attempt failed (${response.status}). Retrying in 4 seconds...`);
+            await wait(4000);
+            response = await callLongCat(apiKey, apiUrl, model, message);
+        }
+
+        // If retry also fails, return error
         if (!response.ok) {
             const errData = await response.json().catch(() => ({}));
-            console.error('LongCat API error:', response.status, errData);
+            console.error('LongCat API error after retry:', response.status, errData);
             return res.status(502).json({ error: 'AI service temporarily unavailable. Please try again.' });
         }
 
