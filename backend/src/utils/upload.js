@@ -50,7 +50,8 @@ const uploadCNIC = multer({ storage, fileFilter: imageFilter, limits: { fileSize
 ]);
 
 // Upload for Rishta apply (CNIC front + back + optional personal photos)
-const uploadRishta = multer({ storage, fileFilter: imageFilter, limits: { fileSize: 5 * 1024 * 1024, files: 5 } }).fields([
+// 15MB per file — phone camera photos can be large
+const uploadRishta = multer({ storage, fileFilter: imageFilter, limits: { fileSize: 15 * 1024 * 1024, files: 5 } }).fields([
   { name: 'cnicFront', maxCount: 1 },
   { name: 'cnicBack', maxCount: 1 },
   { name: 'photos', maxCount: 3 },

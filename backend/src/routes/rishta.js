@@ -60,7 +60,9 @@ router.post('/apply', authenticate, (req, res) => {
 
       const { age, gender, education, occupation, familyDetails, preferences, signatureAgreed } = req.body;
 
-      if (!signatureAgreed || signatureAgreed !== 'true') {
+      // Accept boolean true or string 'true' from FormData
+      const agreed = signatureAgreed === true || signatureAgreed === 'true';
+      if (!agreed) {
         return res.status(400).json({
           error: 'You must agree to the terms and conditions to use the Rishta feature.',
         });

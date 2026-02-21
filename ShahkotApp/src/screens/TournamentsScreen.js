@@ -358,8 +358,6 @@ const styles = StyleSheet.create({
   submitBtn: { flex: 2, padding: 14, borderRadius: 10, alignItems: 'center', backgroundColor: COLORS.primary },
   submitText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });
-
-export default function TournamentsScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
