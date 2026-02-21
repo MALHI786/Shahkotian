@@ -137,7 +137,7 @@ const VideoFeedScreen = ({ navigation }) => {
             onLike={() => handleLike(item.id)}
             onShare={() => handleShare(item)}
             onDownload={() => handleDownload(item)}
-            onComment={() => navigation.navigate('Comments', { postId: item.id })}
+            onComment={() => Alert.alert('Comments', 'Comments feature coming soon!')}
             onProfile={() => navigation.navigate('UserProfile', { userId: item.userId })}
         />
     );

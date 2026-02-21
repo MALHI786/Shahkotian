@@ -180,7 +180,7 @@ export default function OpenChatScreen({ navigation }) {
         try {
             // 1. Read audio file as base64 (avoids FormData issues in React Native)
             const base64 = await FileSystem.readAsStringAsync(uri, {
-                encoding: FileSystem.EncodingType.Base64,
+                encoding: 'base64',  // Use string literal for compatibility
             });
 
             // 2. Upload base64 audio to backend > Cloudinary
