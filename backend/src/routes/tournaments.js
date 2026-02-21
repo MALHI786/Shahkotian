@@ -85,62 +85,70 @@ router.get('/:id', authenticate, async (req, res) => {
 });
 
 /**
- * POST /api/tournaments (ADMIN ONLY)
+ * POST /api/tournaments (ANY authenticated user)
  * Create a new tournament
  */
-router.post('/', authenticate, adminOnly, (req, res) => {
-  uploadSingle(req, res, async (err) => {
-    try {
-      if (err) {
-        return res.status(400).json({ error: err.message });
-      }
+router.post('/', authenticate, async (req, res) => {
+  try {
+    const { sport, name, title, description, venue, location, startDate, endDate,
+            teams, prize, entryFee, contactNumber } = req.body;
 
-      const { sport, name, description, venue, startDate, endDate } = req.body;
+    const tournName = name || title;
+    const tournVenue = venue || location;
 
-      if (!sport || !name || !description || !venue || !startDate) {
-        return res.status(400).json({
-          error: 'Sport, name, description, venue, and start date are required.',
-        });
-      }
-
-      // Upload image if provided
-      let imageUrl = null;
-      if (req.file) {
-        imageUrl = await uploadToCloudinary(req.file.buffer, 'tournaments');
-      }
-
-      const tournament = await prisma.tournament.create({
-        data: {
-          sport,
-          name,
-          description,
-          image: imageUrl,
-          venue,
-          startDate: new Date(startDate),
-          endDate: endDate ? new Date(endDate) : null,
-        },
+    if (!sport || !tournName || !description || !tournVenue || !startDate) {
+      return res.status(400).json({
+        error: 'Sport, name, description, venue, and start date are required.',
       });
-
-      res.status(201).json({ message: 'Tournament created!', tournament });
-    } catch (error) {
-      console.error('Create tournament error:', error);
-      res.status(500).json({ error: 'Failed to create tournament.' });
     }
-  });
+
+    // Parse teams array
+    let teamsArr = [];
+    if (Array.isArray(teams)) teamsArr = teams.filter(Boolean);
+    else if (typeof teams === 'string') {
+      try { teamsArr = JSON.parse(teams); } catch { teamsArr = []; }
+    }
+
+    const tournament = await prisma.tournament.create({
+      data: {
+        sport,
+        name: tournName,
+        description,
+        image: null,
+        venue: tournVenue,
+        startDate: new Date(startDate),
+        endDate: endDate ? new Date(endDate) : null,
+        createdById: req.user.id,
+        teams: teamsArr,
+        prize: prize || null,
+        entryFee: entryFee ? parseInt(entryFee) : null,
+        contactNumber: contactNumber || null,
+      },
+    });
+
+    res.status(201).json({ message: 'Tournament created!', tournament });
+  } catch (error) {
+    console.error('Create tournament error:', error);
+    res.status(500).json({ error: 'Failed to create tournament.' });
+  }
 });
 
 /**
- * POST /api/tournaments/:id/matches (ADMIN ONLY)
+ * POST /api/tournaments/:id/matches (Creator or Admin)
  * Add a match to a tournament
  */
-router.post('/:id/matches', authenticate, adminOnly, async (req, res) => {
+router.post('/:id/matches', authenticate, async (req, res) => {
   try {
-    const { team1, team2, date, time, venue, result } = req.body;
+    const tournament = await prisma.tournament.findUnique({ where: { id: req.params.id } });
+    if (!tournament) return res.status(404).json({ error: 'Tournament not found.' });
+    if (tournament.createdById !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only the tournament creator or admin can add matches.' });
+    }
 
-    if (!team1 || !team2 || !date || !time || !venue) {
-      return res.status(400).json({
-        error: 'Team1, team2, date, time, and venue are required.',
-      });
+    const { team1, team2, date, time, venue, result, round, score } = req.body;
+
+    if (!team1 || !team2) {
+      return res.status(400).json({ error: 'Team1 and team2 are required.' });
     }
 
     const match = await prisma.match.create({
@@ -148,10 +156,12 @@ router.post('/:id/matches', authenticate, adminOnly, async (req, res) => {
         tournamentId: req.params.id,
         team1,
         team2,
-        date: new Date(date),
-        time,
-        venue,
+        date: date ? new Date(date) : new Date(),
+        time: time || '',
+        venue: venue || tournament.venue,
         result: result || null,
+        round: round || null,
+        score: score || null,
       },
     });
 
@@ -163,22 +173,41 @@ router.post('/:id/matches', authenticate, adminOnly, async (req, res) => {
 });
 
 /**
- * PUT /api/tournaments/:id (ADMIN ONLY)
+ * PUT /api/tournaments/:id (Creator or Admin)
  * Update tournament
  */
-router.put('/:id', authenticate, adminOnly, async (req, res) => {
+router.put('/:id', authenticate, async (req, res) => {
   try {
-    const { sport, name, description, venue, startDate, endDate } = req.body;
+    const existing = await prisma.tournament.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'Tournament not found.' });
+    if (existing.createdById !== req.user.id && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Only the creator or admin can edit this tournament.' });
+    }
+
+    const { sport, name, title, description, venue, location,
+            startDate, endDate, teams, prize, entryFee, contactNumber } = req.body;
+
+    let teamsArr = undefined;
+    if (teams !== undefined) {
+      if (Array.isArray(teams)) teamsArr = teams.filter(Boolean);
+      else if (typeof teams === 'string') {
+        try { teamsArr = JSON.parse(teams); } catch { teamsArr = []; }
+      }
+    }
 
     const tournament = await prisma.tournament.update({
       where: { id: req.params.id },
       data: {
         ...(sport && { sport }),
-        ...(name && { name }),
+        ...((name || title) && { name: name || title }),
         ...(description && { description }),
-        ...(venue && { venue }),
+        ...((venue || location) && { venue: venue || location }),
         ...(startDate && { startDate: new Date(startDate) }),
         ...(endDate && { endDate: new Date(endDate) }),
+        ...(teamsArr !== undefined && { teams: teamsArr }),
+        ...(prize !== undefined && { prize }),
+        ...(entryFee !== undefined && { entryFee: entryFee ? parseInt(entryFee) : null }),
+        ...(contactNumber !== undefined && { contactNumber }),
       },
     });
 

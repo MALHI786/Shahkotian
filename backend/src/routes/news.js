@@ -163,9 +163,9 @@ router.post('/', upload.array('images', 5), async (req, res) => {
       }
       reporterId = reporter.id;
       authorName = reporter.name;
-    } else if (decoded.id) {
-      // Check if admin user
-      const adminUser = await prisma.user.findUnique({ where: { id: decoded.id } });
+    } else if (decoded.userId) {
+      // Check if admin user (decoded.userId is correct – auth.js signs with userId)
+      const adminUser = await prisma.user.findUnique({ where: { id: decoded.userId } });
       if (!adminUser || adminUser.role !== 'ADMIN') {
         return res.status(403).json({ error: 'Only reporters and admins can post news.' });
       }

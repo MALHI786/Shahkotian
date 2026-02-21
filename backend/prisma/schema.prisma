@@ -162,17 +162,21 @@ model Listing {
 }
 
 model Tournament {
-  id          String    @id @default(uuid())
-  sport       SportType
-  name        String
-  description String
-  image       String? // One image only
-  venue       String
-  startDate   DateTime
-  endDate     DateTime?
-  createdById String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String    @id @default(uuid())
+  sport         SportType
+  name          String
+  description   String
+  image         String?
+  venue         String
+  startDate     DateTime
+  endDate       DateTime?
+  createdById   String?
+  teams         String[]  @default([])
+  prize         String?
+  entryFee      Int?
+  contactNumber String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   matches Match[]
 
@@ -181,15 +185,17 @@ model Tournament {
 }
 
 model Match {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   tournamentId String
   team1        String
   team2        String
-  date         DateTime
-  time         String
-  venue        String
+  date         DateTime  @default(now())
+  time         String    @default("")
+  venue        String    @default("")
   result       String?
-  createdAt    DateTime @default(now())
+  round        String?
+  score        String?
+  createdAt    DateTime  @default(now())
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
 

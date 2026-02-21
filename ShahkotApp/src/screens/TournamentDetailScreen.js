@@ -15,7 +15,9 @@ import { tournamentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function TournamentDetailScreen({ route, navigation }) {
-  const { tournamentId } = route.params;
+  // Accept either tournamentId or id from navigation params
+  const { tournamentId, id } = route.params || {};
+  const tid = tournamentId || id;
   const { user, isAdmin } = useAuth();
   const [tournament, setTournament] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ export default function TournamentDetailScreen({ route, navigation }) {
 
   const loadTournament = async () => {
     try {
-      const res = await tournamentsAPI.getOne(tournamentId);
+      const res = await tournamentsAPI.getOne(tid);
       setTournament(res.data.tournament);
       setEditForm({
         title: res.data.tournament.title || '',
@@ -54,7 +56,7 @@ export default function TournamentDetailScreen({ route, navigation }) {
   const updateTournament = async () => {
     try {
       setSaving(true);
-      await tournamentsAPI.update(tournamentId, {
+      await tournamentsAPI.update(tid, {
         ...editForm,
         entryFee: editForm.entryFee ? parseInt(editForm.entryFee) : null,
       });
@@ -74,7 +76,7 @@ export default function TournamentDetailScreen({ route, navigation }) {
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
           try {
-            await tournamentsAPI.delete(tournamentId);
+            await tournamentsAPI.delete(tid);
             Alert.alert('Deleted', 'Tournament removed successfully');
             navigation.goBack();
           } catch (error) {
@@ -91,7 +93,7 @@ export default function TournamentDetailScreen({ route, navigation }) {
       return;
     }
     try {
-      await tournamentsAPI.addMatch(tournamentId, matchForm);
+      await tournamentsAPI.addMatch(tid, matchForm);
       Alert.alert('Success', 'Match added!');
       setShowAddMatch(false);
       setMatchForm({ team1: '', team2: '', date: '', round: '' });

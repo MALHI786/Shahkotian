@@ -104,10 +104,16 @@ class DatabaseManager {
 
   async autoSwitch() {
     try {
-      const client = await this.getActiveClient();
-      const size = await this.checkDatabaseSize(client);
-      if (size >= 0) this.databases[this.activeIndex].sizeMB = size;
-      if (size >= DB_SIZE_LIMIT_MB) {
+      // Update sizes of ALL already-connected databases (fast — sockets already open)
+      for (const db of this.databases) {
+        if (db.client) {
+          const size = await this.checkDatabaseSize(db.client);
+          if (size >= 0) db.sizeMB = size;
+        }
+      }
+      // If active DB is near limit, find and switch to next available
+      const activeSize = this.databases[this.activeIndex]?.sizeMB || 0;
+      if (activeSize >= DB_SIZE_LIMIT_MB) {
         const next = await this.findAvailableDatabase();
         if (next >= 0) await this.switchDatabase(next);
       }
@@ -116,8 +122,28 @@ class DatabaseManager {
     }
   }
 
+  // Background: connect to all DBs and populate initial sizes (runs once on startup)
+  async refreshAllSizes() {
+    for (const db of this.databases) {
+      if (!db.client) {
+        try {
+          db.client = this.createClient(db.url);
+          await db.client.$connect();
+        } catch (e) {
+          db.isAvailable = false;
+          continue;
+        }
+      }
+      const size = await this.checkDatabaseSize(db.client);
+      if (size >= 0) { db.sizeMB = size; db.isAvailable = true; }
+    }
+  }
+
   startSizeMonitor() {
-    setTimeout(() => this.autoSwitch(), 5000);
+    // Initial refresh: connect all DBs and get real sizes (runs in background)
+    setTimeout(() => this.refreshAllSizes().catch(() => {}), 3000);
+    // Regular check every interval
+    setTimeout(() => this.autoSwitch(), 10000);
     this.checkTimer = setInterval(() => this.autoSwitch(), CHECK_INTERVAL_MS);
   }
 
