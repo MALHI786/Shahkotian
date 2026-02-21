@@ -211,7 +211,7 @@ export default function MarketplaceScreen() {
           {/* Header */}
           <View style={styles.detailHeader}>
             <TouchableOpacity onPress={() => setSelectedListing(null)}>
-              <Text style={styles.detailBackBtn}>< Back</Text>
+              <Text style={styles.detailBackBtn}>{'<'} Back</Text>
             </TouchableOpacity>
             <Text style={styles.detailHeaderTitle}>Item Details</Text>
             <View style={{ width: 50 }} />

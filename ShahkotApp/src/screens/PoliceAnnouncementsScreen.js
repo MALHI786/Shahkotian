@@ -94,7 +94,7 @@ export default function PoliceAnnouncementsScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>< Back</Text>
+          <Text style={styles.backBtn}>{'<'} Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Police Announcements</Text>
         <View style={{ width: 50 }} />

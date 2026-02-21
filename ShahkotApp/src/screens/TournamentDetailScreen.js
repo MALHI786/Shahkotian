@@ -144,7 +144,7 @@ export default function TournamentDetailScreen({ route, navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>< Back</Text>
+          <Text style={styles.backBtn}>{'<'} Back</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Tournament</Text>
         {canManage ? (

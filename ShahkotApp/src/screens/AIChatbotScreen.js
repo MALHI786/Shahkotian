@@ -79,7 +79,7 @@ export default function AIChatbotScreen({ navigation }) {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                    <Text style={styles.backText}>< Back</Text>
+                    <Text style={styles.backText}>{'<'} Back</Text>
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
                     <View style={styles.headerAvatarWrap}>

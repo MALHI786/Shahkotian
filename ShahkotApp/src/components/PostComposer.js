@@ -341,7 +341,7 @@ export default function PostComposer({
                             )}
                             <View style={styles.previewActions}>
                                 <TouchableOpacity style={styles.previewEditBtn} onPress={() => setShowPreview(false)}>
-                                    <Text style={styles.previewEditText}>< Edit</Text>
+                                    <Text style={styles.previewEditText}>{'<'} Edit</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     style={styles.previewPublishBtn}
