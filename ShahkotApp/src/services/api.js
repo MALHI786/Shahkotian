@@ -5,10 +5,8 @@ import { API_URL } from '../config/constants';
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' },
 });
 
 // Request interceptor - attach JWT token
@@ -53,6 +51,7 @@ export const postsAPI = {
   getVideos: (page = 1) => api.get(`/posts/videos?page=${page}`),
   createPost: (formData) => api.post('/posts', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 300000, // 5 minutes for video uploads
   }),
   likePost: (id) => api.post(`/posts/${id}/like`),
   getComments: (id, page = 1) => api.get(`/posts/${id}/comments?page=${page}`),
@@ -186,6 +185,7 @@ export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
   getUsers: (params) => api.get('/admin/users', { params }),
   toggleUser: (id) => api.put(`/admin/users/${id}/toggle-active`),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
   getPendingRishta: () => api.get('/admin/rishta/pending'),
   approveRishta: (id) => api.put(`/admin/rishta/${id}/approve`),
   rejectRishta: (id, reason) => api.put(`/admin/rishta/${id}/reject`, { reason }),
@@ -195,6 +195,16 @@ export const adminAPI = {
   deleteReporter: (id) => api.delete(`/admin/reporters/${id}`),
   deletePost: (id) => api.delete(`/admin/posts/${id}`),
   deleteListing: (id) => api.delete(`/admin/listings/${id}`),
+  deleteComment: (id) => api.delete(`/admin/comments/${id}`),
+  deleteChatMessage: (id) => api.delete(`/admin/chat-messages/${id}`),
+  deleteNews: (id) => api.delete(`/admin/news/${id}`),
+  deleteTournament: (id) => api.delete(`/admin/tournaments/${id}`),
+  // Bulk cleanup
+  bulkDeleteChat: (data) => api.delete('/admin/chat-messages-bulk', { data }),
+  bulkDeleteNotifications: (data) => api.delete('/admin/notifications-bulk', { data }),
+  // Storage / DB info
+  getStorage: () => api.get('/admin/storage'),
+  getDbStatus: () => api.get('/db-status'),
 };
 
 // ============ ALIASES FOR BACKWARDS COMPATIBILITY ============

@@ -6,6 +6,8 @@ const { uploadMultipleToCloudinary, uploadMultipleVideosToCloudinary } = require
 
 const router = express.Router();
 
+const MAX_VIDEO_DURATION = parseInt(process.env.MAX_VIDEO_DURATION_SECONDS || '180', 10); // seconds
+
 /**
  * GET /api/posts
  * Get all posts (feed) with pagination
@@ -113,17 +115,42 @@ router.get('/videos', authenticate, async (req, res) => {
  * POST /api/posts
  * Create a new post (text + images + videos)
  */
-router.post('/', authenticate, uploadMedia.fields([
-  { name: 'images', maxCount: 5 },
-  { name: 'videos', maxCount: 3 }
-]), async (req, res) => {
+router.post('/', authenticate, (req, res, next) => {
+  uploadMedia.fields([
+    { name: 'images', maxCount: 5 },
+    { name: 'videos', maxCount: 3 }
+  ])(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: `File too large. Videos must be under ${process.env.MAX_VIDEO_SIZE_MB || 100}MB.` });
+      }
+      if (err.code === 'LIMIT_FILE_COUNT') return res.status(400).json({ error: 'Too many files. Max 5 images + 3 videos.' });
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text, videoDurations } = req.body;
     const imageFiles = req.files?.images || [];
     const videoFiles = req.files?.videos || [];
 
     if (!text && imageFiles.length === 0 && videoFiles.length === 0) {
       return res.status(400).json({ error: 'Post must have text, images, or videos.' });
+    }
+
+    // Validate video durations if provided by client
+    if (videoDurations) {
+      try {
+        const durations = JSON.parse(videoDurations);
+        for (let i = 0; i < durations.length; i++) {
+          if (durations[i] > MAX_VIDEO_DURATION) {
+            return res.status(400).json({ error: `Video ${i + 1} is ${Math.round(durations[i])}s. Max is ${MAX_VIDEO_DURATION}s.` });
+          }
+        }
+      } catch (e) {
+        // ignore parse errors
+      }
     }
 
     // Upload images to Cloudinary

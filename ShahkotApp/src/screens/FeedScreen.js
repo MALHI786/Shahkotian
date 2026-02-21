@@ -91,11 +91,21 @@ export default function FeedScreen({ navigation }) {
       allowsMultipleSelection: true,
       selectionLimit: 3,
       quality: 0.7,
-      videoMaxDuration: 60,
+      videoMaxDuration: 180,
     });
 
     if (!result.canceled) {
-      setPostVideos(result.assets.slice(0, 3));
+      const valid = [];
+      for (const asset of result.assets) {
+        const dur = asset.duration || 0;
+        const durationSeconds = dur > 10000 ? Math.round(dur / 1000) : Math.round(dur);
+        if (durationSeconds > 180) {
+          Alert.alert('⏱️ Video Too Long', `Max 3 minutes allowed. Your video is ${durationSeconds}s. Please trim it.`);
+          continue;
+        }
+        valid.push(asset);
+      }
+      setPostVideos(valid.slice(0, 3));
     }
   };
 
@@ -118,13 +128,17 @@ export default function FeedScreen({ navigation }) {
         });
       });
 
+      const videoDurations = [];
       postVideos.forEach((vid, index) => {
         formData.append('videos', {
           uri: vid.uri,
           type: 'video/mp4',
           name: `post_video_${index}.mp4`,
         });
+        const dur = vid.duration || 0;
+        videoDurations.push(dur > 10000 ? Math.round(dur / 1000) : Math.round(dur));
       });
+      if (videoDurations.length > 0) formData.append('videoDurations', JSON.stringify(videoDurations));
 
       await postsAPI.createPost(formData);
       setPostText('');

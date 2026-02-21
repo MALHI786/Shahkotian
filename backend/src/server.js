@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 
+const prisma = require('./config/database');
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const listingRoutes = require('./routes/listings');
@@ -36,7 +37,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // limit each IP to 500 requests per windowMs
+  max: 5000, // limit each IP to 5000 requests per windowMs (increased for chat polling)
   message: { error: 'Too many requests, please try again later.' }
 });
 app.use('/api/', limiter);
@@ -44,6 +45,20 @@ app.use('/api/', limiter);
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Shahkot App API is running', timestamp: new Date() });
+});
+
+// Database status endpoint
+app.get('/api/db-status', async (req, res) => {
+  try {
+    const dbManager = prisma.__dbManager;
+    if (dbManager) {
+      const statuses = await dbManager.getAllStatus();
+      return res.json({ activeDatabase: dbManager.activeIndex, totalDatabases: dbManager.databases.length, databases: statuses });
+    }
+    res.json({ activeDatabase: 0, totalDatabases: 1, databases: [] });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to get DB status.' });
+  }
 });
 
 // Routes
@@ -78,9 +93,25 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Shahkot App API running on port ${PORT}`);
-  console.log(`📍 Geofence: ${process.env.SHAHKOT_LAT}, ${process.env.SHAHKOT_LNG} (${process.env.GEOFENCE_RADIUS_KM}km radius)`);
-});
+
+async function startServer() {
+  try {
+    // initialize database manager if available
+    if (prisma && prisma.__dbManager) {
+      await prisma.__dbManager.initialize();
+      console.log('✅ Database manager initialized');
+    }
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Shahkot App API running on port ${PORT}`);
+      console.log(`📍 Geofence: ${process.env.SHAHKOT_LAT}, ${process.env.SHAHKOT_LNG} (${process.env.GEOFENCE_RADIUS_KM}km radius)`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 module.exports = app;

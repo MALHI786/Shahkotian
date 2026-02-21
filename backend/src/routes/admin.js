@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const prisma = require('../config/database');
 const { authenticate, adminOnly } = require('../middleware/auth');
 const { sendRishtaApprovalEmail, sendRishtaRejectionEmail } = require('../utils/email');
+const { deleteFromCloudinary } = require('../utils/cloudinaryUpload');
 
 const router = express.Router();
 
@@ -389,4 +390,183 @@ router.delete('/listings/:id', async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/admin/users/:id
+ * Delete a user and all related data
+ */
+router.delete('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return res.status(404).json({ error: 'User not found.' });
+
+    await prisma.$transaction([
+      prisma.like.deleteMany({ where: { userId: id } }),
+      prisma.comment.deleteMany({ where: { userId: id } }),
+      prisma.chatMessage.deleteMany({ where: { userId: id } }),
+      prisma.notification.deleteMany({ where: { userId: id } }),
+      prisma.rishtaProfile.deleteMany({ where: { userId: id } }),
+      prisma.post.deleteMany({ where: { userId: id } }),
+      prisma.listing.deleteMany({ where: { userId: id } }),
+      prisma.user.delete({ where: { id } }),
+    ]);
+
+    res.json({ message: 'User and related data deleted.' });
+  } catch (error) {
+    console.error('Admin delete user error:', error);
+    res.status(500).json({ error: 'Failed to delete user.' });
+  }
+});
+
+/**
+ * DELETE /api/admin/comments/:id
+ */
+router.delete('/comments/:id', async (req, res) => {
+  try {
+    await prisma.comment.delete({ where: { id: req.params.id } });
+    res.json({ message: 'Comment deleted.' });
+  } catch (error) {
+    console.error('Delete comment error:', error);
+    res.status(500).json({ error: 'Failed to delete comment.' });
+  }
+});
+
+/**
+ * DELETE /api/admin/chat-messages/:id
+ */
+router.delete('/chat-messages/:id', async (req, res) => {
+  try {
+    await prisma.chatMessage.delete({ where: { id: req.params.id } });
+    res.json({ message: 'Chat message deleted.' });
+  } catch (error) {
+    console.error('Delete chat message error:', error);
+    res.status(500).json({ error: 'Failed to delete chat message.' });
+  }
+});
+
+// Bulk delete chat messages older than X days
+router.delete('/chat-messages-bulk', async (req, res) => {
+  try {
+    const { olderThanDays = 30 } = req.body;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(olderThanDays, 10));
+    const result = await prisma.chatMessage.deleteMany({ where: { createdAt: { lt: cutoff } } });
+    res.json({ message: `Deleted ${result.count} chat messages older than ${olderThanDays} days.` });
+  } catch (error) {
+    console.error('Bulk chat delete error:', error);
+    res.status(500).json({ error: 'Failed to bulk delete chat messages.' });
+  }
+});
+
+// Bulk delete notifications older than X days
+router.delete('/notifications-bulk', async (req, res) => {
+  try {
+    const { olderThanDays = 30 } = req.body;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(olderThanDays, 10));
+    const result = await prisma.notification.deleteMany({ where: { createdAt: { lt: cutoff } } });
+    res.json({ message: `Deleted ${result.count} notifications older than ${olderThanDays} days.` });
+  } catch (error) {
+    console.error('Bulk notifications delete error:', error);
+    res.status(500).json({ error: 'Failed to bulk delete notifications.' });
+  }
+});
+
+// Storage info endpoint
+router.get('/storage', async (req, res) => {
+  try {
+    const [users, posts, listings, comments, likes, chatMessages, news, tournaments, shops, govtOffices, rishtaProfiles, notifications] = await Promise.all([
+      prisma.user.count(), prisma.post.count(), prisma.listing.count(), prisma.comment.count(), prisma.like.count(), prisma.chatMessage.count(), prisma.news.count(), prisma.tournament.count(), prisma.shop.count(), prisma.govtOffice.count(), prisma.rishtaProfile.count(), prisma.notification.count()
+    ]);
+
+    let dbSizeMB = -1;
+    try {
+      const result = await prisma.$queryRaw`SELECT pg_database_size(current_database()) as size`;
+      dbSizeMB = Math.round((Number(result[0].size) / (1024 * 1024)) * 100) / 100;
+    } catch (e) { dbSizeMB = -1; }
+
+    res.json({ databaseSizeMB: dbSizeMB, totals: { users, posts, listings, comments, likes, chatMessages, news, tournaments, shops, govtOffices, rishtaProfiles, notifications } });
+  } catch (error) {
+    console.error('Storage info error:', error);
+    res.status(500).json({ error: 'Failed to get storage info.' });
+  }
+});
+
+// ============ NEWS DELETION ============
+router.delete('/news/:id', async (req, res) => {
+  try {
+    const item = await prisma.news.findUnique({ where: { id: req.params.id } });
+    if (!item) return res.status(404).json({ error: 'News not found.' });
+    if (item.images?.length) {
+      for (const url of item.images) { try { await deleteFromCloudinary(url); } catch (_) {} }
+    }
+    await prisma.news.delete({ where: { id: req.params.id } });
+    res.json({ message: 'News article deleted.' });
+  } catch (error) {
+    console.error('Admin delete news error:', error);
+    res.status(500).json({ error: 'Failed to delete news.' });
+  }
+});
+
+// ============ TOURNAMENT DELETION ============
+router.delete('/tournaments/:id', async (req, res) => {
+  try {
+    await prisma.$transaction([
+      prisma.match.deleteMany({ where: { tournamentId: req.params.id } }),
+      prisma.tournament.delete({ where: { id: req.params.id } }),
+    ]);
+    res.json({ message: 'Tournament and matches deleted.' });
+  } catch (error) {
+    console.error('Admin delete tournament error:', error);
+    res.status(500).json({ error: 'Failed to delete tournament.' });
+  }
+});
+
+// ============ RISHTA DELETION ============
+router.delete('/rishta/:id', async (req, res) => {
+  try {
+    const profile = await prisma.rishtaProfile.findUnique({ where: { id: req.params.id } });
+    if (!profile) return res.status(404).json({ error: 'Rishta profile not found.' });
+    const allImages = [...(profile.images || [])];
+    if (profile.cnicFront) allImages.push(profile.cnicFront);
+    if (profile.cnicBack) allImages.push(profile.cnicBack);
+    for (const url of allImages) { try { await deleteFromCloudinary(url); } catch (_) {} }
+    await prisma.rishtaProfile.delete({ where: { id: req.params.id } });
+    res.json({ message: 'Rishta profile deleted.' });
+  } catch (error) {
+    console.error('Admin delete rishta error:', error);
+    res.status(500).json({ error: 'Failed to delete rishta profile.' });
+  }
+});
+
+// ============ GENERAL CLEANUP ============
+router.post('/cleanup', async (req, res) => {
+  try {
+    const { target, olderThanDays = 30 } = req.body;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(olderThanDays, 10));
+    let deletedCount = 0;
+    switch (target) {
+      case 'notifications': { const r = await prisma.notification.deleteMany({ where: { createdAt: { lt: cutoff } } }); deletedCount = r.count; break; }
+      case 'chatMessages': { const r = await prisma.chatMessage.deleteMany({ where: { createdAt: { lt: cutoff } } }); deletedCount = r.count; break; }
+      case 'likes': { const r = await prisma.like.deleteMany({ where: { createdAt: { lt: cutoff } } }); deletedCount = r.count; break; }
+      case 'comments': { const r = await prisma.comment.deleteMany({ where: { createdAt: { lt: cutoff } } }); deletedCount = r.count; break; }
+      case 'all-old': {
+        const results = await prisma.$transaction([
+          prisma.notification.deleteMany({ where: { createdAt: { lt: cutoff } } }),
+          prisma.chatMessage.deleteMany({ where: { createdAt: { lt: cutoff } } }),
+        ]);
+        deletedCount = results.reduce((s, r) => s + r.count, 0);
+        break;
+      }
+      default: return res.status(400).json({ error: 'Invalid target.' });
+    }
+    res.json({ message: `Cleaned up ${deletedCount} records.`, deletedCount });
+  } catch (error) {
+    console.error('Cleanup error:', error);
+    res.status(500).json({ error: 'Failed to cleanup.' });
+  }
+});
+
 module.exports = router;
+

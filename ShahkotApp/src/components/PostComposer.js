@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
     View, Text, TextInput, TouchableOpacity, StyleSheet,
-    Image, Modal, Animated, ActivityIndicator, FlatList,
+    Image, Modal, Animated, ActivityIndicator, FlatList, Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS, PRIVACY_OPTIONS } from '../config/constants';
+import { COLORS, PRIVACY_OPTIONS, MAX_VIDEO_DURATION_SECONDS, MAX_VIDEO_SIZE_MB } from '../config/constants';
 import { postsAPI } from '../services/api';
 
 export default function PostComposer({
@@ -91,16 +91,32 @@ export default function PostComposer({
 
     const pickVideos = async () => {
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-            allowsMultipleSelection: true,
-            selectionLimit: 3 - videos.length,
-            quality: 0.7,
-            videoMaxDuration: 60,
-        });
+                mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+                allowsMultipleSelection: true,
+                selectionLimit: 3 - videos.length,
+                quality: 0.5,
+                videoMaxDuration: MAX_VIDEO_DURATION_SECONDS, // 3 minutes
+            });
 
-        if (!result.canceled) {
-            setVideos([...videos, ...result.assets].slice(0, 3));
-        }
+            if (!result.canceled) {
+                const validVideos = [];
+                for (const asset of result.assets) {
+                    // asset.duration may be in seconds or milliseconds depending on platform
+                    const dur = asset.duration || 0;
+                    const durationSeconds = dur > 10000 ? Math.round(dur / 1000) : Math.round(dur);
+                    if (durationSeconds > MAX_VIDEO_DURATION_SECONDS) {
+                        Alert.alert('⏱️ Video Too Long', `Video is ${durationSeconds}s. Maximum is ${MAX_VIDEO_DURATION_SECONDS}s. Please trim and try again.`);
+                        continue;
+                    }
+                    if (asset.fileSize && asset.fileSize > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+                        Alert.alert('📦 Video Too Large', `Video is ${(asset.fileSize / (1024 * 1024)).toFixed(1)}MB. Max ${MAX_VIDEO_SIZE_MB}MB.`);
+                        continue;
+                    }
+                    validVideos.push(asset);
+                }
+
+                if (validVideos.length > 0) setVideos([...videos, ...validVideos].slice(0, 3));
+            }
     };
 
     const removeImage = (index) => {
@@ -128,13 +144,17 @@ export default function PostComposer({
                 });
             });
 
+            const durations = [];
             videos.forEach((vid, index) => {
                 formData.append('videos', {
                     uri: vid.uri,
                     type: 'video/mp4',
                     name: `post_video_${index}.mp4`,
                 });
+                const dur = vid.duration || 0;
+                durations.push(dur > 10000 ? Math.round(dur / 1000) : Math.round(dur));
             });
+            if (durations.length > 0) formData.append('videoDurations', JSON.stringify(durations));
 
             const response = await postsAPI.createPost(formData);
 

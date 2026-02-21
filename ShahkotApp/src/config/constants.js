@@ -85,3 +85,14 @@ export const FONTS = {
   regular: 'System',
   bold: 'System',
 };
+
+// Video Limits
+export const MAX_VIDEO_DURATION_SECONDS = 180; // 3 minutes
+export const MAX_VIDEO_SIZE_MB = 100;
+
+// Privacy Options
+export const PRIVACY_OPTIONS = [
+  { key: 'PUBLIC', label: 'Public', icon: '🌍', description: 'Anyone can see this post' },
+  { key: 'FRIENDS', label: 'Friends', icon: '👥', description: 'Only your friends' },
+  { key: 'PRIVATE', label: 'Only Me', icon: '🔒', description: 'Only you can see this post' },
+];

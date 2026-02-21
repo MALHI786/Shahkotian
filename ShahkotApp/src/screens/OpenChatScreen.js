@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI } from '../services/api';
 
@@ -87,10 +87,10 @@ export default function OpenChatScreen({ navigation }) {
         }
     }, []);
 
-    // Initial load + polling every 4s
+    // Initial load + polling every 10s
     useEffect(() => {
         loadMessages(1);
-        pollRef.current = setInterval(() => loadMessages(1), 4000);
+        pollRef.current = setInterval(() => loadMessages(1), 10000);
         return () => {
             clearInterval(pollRef.current);
             soundRef.current?.unloadAsync().catch(() => {});
@@ -116,6 +116,7 @@ export default function OpenChatScreen({ navigation }) {
 
     // Voice recording
     const startRecording = async () => {
+        if (recordingRef.current) return; // Prevent double recording
         try {
             const { status } = await Audio.requestPermissionsAsync();
             if (status !== 'granted') {
@@ -180,7 +181,7 @@ export default function OpenChatScreen({ navigation }) {
         try {
             // 1. Read audio file as base64 (avoids FormData issues in React Native)
             const base64 = await FileSystem.readAsStringAsync(uri, {
-                encoding: 'base64',  // Use string literal for compatibility
+                encoding: FileSystem.EncodingType.Base64,
             });
 
             // 2. Upload base64 audio to backend > Cloudinary
