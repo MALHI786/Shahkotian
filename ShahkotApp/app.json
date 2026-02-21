@@ -13,7 +13,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.salman38.shahkotapp"
+      "bundleIdentifier": "com.salman38.shahkotapp",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Shahkot App needs your location to verify you are within the Shahkot area.",
+        "NSLocationAlwaysUsageDescription": "Shahkot App needs your location to verify you are within the Shahkot area.",
+        "NSCameraUsageDescription": "Shahkot App needs camera access to upload profile photos and post images.",
+        "NSMicrophoneUsageDescription": "Shahkot App needs microphone access to record voice messages.",
+        "NSPhotoLibraryUsageDescription": "Shahkot App needs photo library access to select images and videos."
+      }
     },
     "android": {
       "package": "com.salman38.shahkotapp",
@@ -22,11 +29,39 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0C8A43"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "RECORD_AUDIO",
+        "INTERNET",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Shahkot App needs location to verify you are within the Shahkot area."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Shahkot App needs access to your photos to upload images and videos.",
+          "cameraPermission": "Shahkot App needs camera access to take photos."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "f3c2ce5a-11f8-4618-9f39-54bd3d7bfbb0"

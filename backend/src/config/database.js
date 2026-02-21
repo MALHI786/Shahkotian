@@ -122,11 +122,24 @@ class DatabaseManager {
   }
 
   async getAllStatus() {
+    // Return cached data immediately — don't open new connections to idle databases.
+    // Only refresh the currently active DB (already connected, fast).
     const out = [];
     for (const db of this.databases) {
-      let size = db.sizeMB;
-      if (db.client) size = await this.checkDatabaseSize(db.client);
-      out.push({ index: db.index, sizeMB: size, isActive: db.index === this.activeIndex, isAvailable: db.isAvailable });
+      let sizeMB = db.sizeMB || 0;
+      // Only re-query the active database (it's already connected)
+      if (db.index === this.activeIndex && db.client) {
+        try {
+          sizeMB = await this.checkDatabaseSize(db.client);
+          db.sizeMB = sizeMB;
+        } catch (_) { sizeMB = db.sizeMB || 0; }
+      }
+      out.push({
+        index: db.index,
+        sizeMB,
+        isActive: db.index === this.activeIndex,
+        isAvailable: db.isAvailable,
+      });
     }
     return out;
   }

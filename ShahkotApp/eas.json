@@ -7,11 +7,19 @@
         "preview": {
             "android": {
                 "buildType": "apk"
+            },
+            "env": {
+                "EXPO_PUBLIC_API_URL": "https://shahkotian.onrender.com/api",
+                "EXPO_PUBLIC_SKIP_GEOFENCE": "true"
             }
         },
         "production": {
             "android": {
-                "buildType": "app-bundle"
+                "buildType": "apk"
+            },
+            "env": {
+                "EXPO_PUBLIC_API_URL": "https://shahkotian.onrender.com/api",
+                "EXPO_PUBLIC_SKIP_GEOFENCE": "false"
             }
         }
     }
