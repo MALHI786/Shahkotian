@@ -129,9 +129,10 @@ Then scan the QR code with **Expo Go** app, or press `a` to launch Android emula
 
 ## 📱 Features
 
-### 1. Location Restriction (Geofencing)
-- Haversine formula checks user is within 50KM of Shahkot center (31.9712°N, 73.4818°E)
-- Users outside the radius cannot register or access the app
+### 1. Location Restriction (Geofencing) - CURRENTLY DISABLED
+- **Geofencing is disabled** - App is accessible from anywhere in Pakistan
+- To enable: Set `SKIP_GEOFENCE=false` in `backend/.env` and update `isWithinShahkot()` in `ShahkotApp/src/utils/geolocation.js`
+- When enabled: Haversine formula checks user is within 50KM of Shahkot center (31.5709°N, 73.4853°E)
 
 ### 2. Social Feed (Posts)
 - Create text + image + video posts (max 5 images or 3 videos)
@@ -249,11 +250,11 @@ npx expo start --android  # Start with Android
 
 ## ⚠️ Important Notes
 
-1. **Video Limits**: Posts can have up to 3 videos (max 3 minutes, 100MB each). Other features (Rishta, Marketplace, Open Chat) do not support videos for safety and moderation.
-2. **First User = Admin**: The first user to register with `ADMIN_PHONE` from `.env` becomes the admin
-3. **WhatsApp Required**: Marketplace listings require a WhatsApp number for buyer contact
-4. **CNIC Verification**: Rishta profiles require CNIC images — admin manually reviews before approval
-5. **Location Check**: App checks location on every launch — users who move outside Shahkot radius lose access
+1. **Geofencing Disabled**: Location restriction is currently DISABLED. The app can be used from anywhere. Set `SKIP_GEOFENCE=false` in backend/.env to re-enable.
+2. **Video Limits**: Posts can have up to 3 videos (max 3 minutes, 100MB each). Other features (Rishta, Marketplace, Open Chat) do not support videos for safety and moderation.
+3. **First User = Admin**: The first user to register with `ADMIN_PHONE` from `.env` becomes the admin
+4. **WhatsApp Required**: Marketplace listings require a WhatsApp number for buyer contact
+5. **CNIC Verification**: Rishta profiles require CNIC images — admin manually reviews before approval
 6. **Rate Limiting**: API is rate-limited to 100 requests per 15 minutes per IP
 
 ---

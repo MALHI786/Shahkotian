@@ -31,43 +31,27 @@ export default function LoginScreen({ navigation }) {
   const checkLocation = async () => {
     try {
       setLocationLoading(true);
-      const { status } = await Location.requestForegroundPermissionsAsync();
-
-      if (status !== 'granted') {
-        setLocationError('Location permission is required to use this app. Only Shahkot area residents can access it.');
-        return;
-      }
-
-      const loc = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      const result = isWithinShahkot(loc.coords.latitude, loc.coords.longitude);
-
-      if (!result.isWithin) {
-        setLocationError(
-          `You are ${result.distance}KM away from Shahkot.\n\nThis app is only available for residents within ${result.maxRadius}KM of Shahkot city.`
-        );
-        return;
-      }
-
+      // GEOFENCING DISABLED - Skip location permission check
+      // Just set a default location (Shahkot center) to allow app to work
       setLocation({
-        latitude: loc.coords.latitude,
-        longitude: loc.coords.longitude,
+        latitude: 31.5709,
+        longitude: 73.4853,
       });
+      setLocationError(null);
     } catch (error) {
-      setLocationError('Unable to get your location. Please enable GPS and try again.');
+      // Even if error, allow app to work
+      setLocation({
+        latitude: 31.5709,
+        longitude: 73.4853,
+      });
     } finally {
       setLocationLoading(false);
     }
   };
 
   const handleAuth = async () => {
-    if (!location) {
-      Alert.alert('Location Required', 'Please wait for location verification.');
-      return;
-    }
-
+    // GEOFENCING DISABLED - No location check required
+    
     if (isRegistering && (!name.trim() || !phone.trim() || !password.trim())) {
       Alert.alert('Required', 'Please enter your name, phone number, and password.');
       return;
