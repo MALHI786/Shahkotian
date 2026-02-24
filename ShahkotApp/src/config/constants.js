@@ -1,8 +1,11 @@
 // Shahkot App API Configuration
 const DEV_API_URL = 'http://192.168.0.112:5000/api'; // Local network
-const PROD_API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://shahkotian.onrender.com/api';
+const PROD_API_URL = 'https://shahkotian.onrender.com/api';
 
-export const API_URL = __DEV__ ? DEV_API_URL : PROD_API_URL;
+// EXPO_PUBLIC_API_URL is injected by EAS build profile (eas.json env section)
+// When set (EAS Update / built APK), always use it — even in __DEV__ mode
+// When not set (local npx expo start), use local network IP
+export const API_URL = process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? DEV_API_URL : PROD_API_URL);
 
 // Shahkot Center Coordinates
 export const SHAHKOT_CENTER = {

@@ -111,6 +111,18 @@ async function startServer() {
     const server = app.listen(PORT, () => {
       console.log(`🚀 Apna Shahkot API running on port ${PORT}`);
       console.log(`📍 Geofence: ${process.env.SHAHKOT_LAT}, ${process.env.SHAHKOT_LNG} (${process.env.GEOFENCE_RADIUS_KM}km radius)`);
+
+      // Keep-alive self-ping — prevents Render free tier from sleeping after 15 min idle
+      const selfUrl = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+      const pingUrl = `${selfUrl}/api/health`;
+      const pingClient = require(pingUrl.startsWith('https') ? 'https' : 'http');
+      setInterval(() => {
+        pingClient.get(pingUrl, (res) => {
+          console.log(`♻️ Keep-alive ping OK (${res.statusCode})`);
+        }).on('error', (e) => {
+          console.log(`⚠️ Keep-alive ping failed: ${e.message}`);
+        });
+      }, 14 * 60 * 1000); // Every 14 minutes
     });
 
     // Graceful shutdown handler
