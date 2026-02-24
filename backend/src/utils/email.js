@@ -1,15 +1,20 @@
 const nodemailer = require('nodemailer');
 
+// NOTE: Port is hardcoded to 465 (SSL). Do NOT read from EMAIL_PORT env var
+// because cloud hosts (Render, Railway, etc.) block port 587 outbound SMTP.
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT) || 465,
-  secure: true, // Use SSL (port 465) — required on most cloud hosts like Render
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // SSL on 465
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  connectionTimeout: 10000, // 10s — fail fast instead of hanging
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
   tls: {
-    rejectUnauthorized: false, // Allow self-signed certs on cloud
+    rejectUnauthorized: false,
   },
 });
 

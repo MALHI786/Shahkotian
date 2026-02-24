@@ -26,9 +26,23 @@ const uploadPhoto = multer({
 const router = express.Router();
 
 /**
- * POST /api/auth/send-otp
- * Send 6-digit OTP to an email address for registration verification
+ * GET /api/auth/test-smtp
+ * Debug endpoint — tests if Gmail SMTP is working from this server
+ * Remove after confirming email works on Render
  */
+router.get('/test-smtp', async (req, res) => {
+  const testEmail = req.query.email || process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+  const result = await sendEmail(testEmail, '✅ SMTP Test — Apna Shahkot', '<p>SMTP is working!</p>');
+  res.json({
+    success: result.ok,
+    error: result.error || null,
+    usedEmail: process.env.EMAIL_USER,
+    usedPass: process.env.EMAIL_PASS ? '****' + process.env.EMAIL_PASS.slice(-4) : 'NOT SET',
+    message: result.ok ? 'Email sent successfully!' : 'SMTP FAILED — see error above',
+  });
+});
+
+
 router.post('/send-otp', async (req, res) => {
   try {
     const { email } = req.body;
