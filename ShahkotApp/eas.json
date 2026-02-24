@@ -4,6 +4,15 @@
         "appVersionSource": "remote"
     },
     "build": {
+        "simulator": {
+            "ios": {
+                "simulator": true
+            },
+            "env": {
+                "EXPO_PUBLIC_API_URL": "https://shahkotian.onrender.com/api",
+                "EXPO_PUBLIC_SKIP_GEOFENCE": "true"
+            }
+        },
         "preview": {
             "android": {
                 "buildType": "apk"
