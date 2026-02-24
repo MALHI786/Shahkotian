@@ -2,11 +2,14 @@ const nodemailer = require('nodemailer');
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: false,
+  port: parseInt(process.env.EMAIL_PORT) || 465,
+  secure: true, // Use SSL (port 465) — required on most cloud hosts like Render
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false, // Allow self-signed certs on cloud
   },
 });
 
@@ -25,10 +28,10 @@ async function sendEmail(to, subject, html) {
       html,
     });
     console.log(`Email sent to ${to}: ${subject}`);
-    return true;
+    return { ok: true };
   } catch (error) {
-    console.error('Email send error:', error.message);
-    return false;
+    console.error('Email send error:', error.message, '| code:', error.code, '| response:', error.response);
+    return { ok: false, error: error.message };
   }
 }
 
@@ -60,7 +63,7 @@ async function sendRishtaApprovalEmail(email, name) {
     </div>
   `;
 
-  return sendEmail(email, '✅ Your Rishta Profile is Approved - Apna Shahkot', html);
+  return sendEmail(email, '✅ Your Rishta Profile is Approved - Apna Shahkot', html).then(r => r.ok);
 }
 
 /**
@@ -89,7 +92,7 @@ async function sendRishtaRejectionEmail(email, name, reason) {
     </div>
   `;
 
-  return sendEmail(email, '❌ Rishta Profile Update - Apna Shahkot', html);
+  return sendEmail(email, '❌ Rishta Profile Update - Apna Shahkot', html).then(r => r.ok);
 }
 
 module.exports = {

@@ -66,9 +66,10 @@ router.post('/send-otp', async (req, res) => {
         </div>
       </div>`;
 
-    const sent = await sendEmail(email, '🔐 Your Apna Shahkot OTP Code', html);
-    if (!sent) {
-      return res.status(500).json({ error: 'Failed to send OTP email. Check email configuration.' });
+    const result = await sendEmail(email, '🔐 Your Apna Shahkot OTP Code', html);
+    if (!result.ok) {
+      console.error('OTP email failed:', result.error);
+      return res.status(500).json({ error: `Failed to send OTP email. (${result.error || 'SMTP error'})` });
     }
 
     res.json({ message: 'OTP sent to your email. Valid for 10 minutes.' });
@@ -281,8 +282,8 @@ router.post('/forgot-password', async (req, res) => {
         </div>
       </div>`;
 
-    const sent = await sendEmail(email, '🔐 Reset Your Apna Shahkot Password', html);
-    if (!sent) {
+    const result = await sendEmail(email, '🔐 Reset Your Apna Shahkot Password', html);
+    if (!result.ok) {
       return res.status(500).json({ error: 'Failed to send OTP email.' });
     }
 

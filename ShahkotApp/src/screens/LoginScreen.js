@@ -40,9 +40,12 @@ export default function LoginScreen() {
     try {
       await authAPI.sendOtp(email.trim());
       setMode('OTP');
-      Alert.alert('OTP Sent ✅', `A 6-digit code has been sent to ${email.trim()}. Check your inbox.`);
+      Alert.alert('OTP Sent ✅', `A 6-digit code has been sent to ${email.trim()}. Check your inbox (and spam folder).`);
     } catch (error) {
-      const msg = error.response?.data?.error || 'Failed to send OTP. Please try again.';
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+      const msg = isTimeout
+        ? 'Server is starting up (takes ~30 sec on free tier). Please wait a moment and try again.'
+        : error.response?.data?.error || 'Failed to send OTP. Please try again.';
       Alert.alert('Error', msg);
     } finally {
       setOtpSending(false);
