@@ -168,6 +168,12 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.contactAdminInfo}>📱 03160623838  •  📧 salmanmalhig@gmail.com</Text>
         </View>
 
+        <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('PrivacyPolicy')}>
+          <Text style={styles.actionIcon}>🔒</Text>
+          <Text style={styles.actionText}>Privacy Policy</Text>
+          <Text style={styles.actionArrow}>></Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={[styles.actionButton, styles.logoutButton]} onPress={handleLogout}>
           <Text style={styles.actionIcon}>🚪</Text>
           <Text style={[styles.actionText, { color: COLORS.error }]}>Logout</Text>

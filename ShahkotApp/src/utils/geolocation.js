@@ -28,24 +28,16 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 export function isWithinShahkot(latitude, longitude) {
-  // ============================================
-  // GEOFENCING DISABLED FOR TESTING
-  // To re-enable, uncomment the distance check below
-  // and remove the "return { isWithin: true }" line
-  // ============================================
-  return { isWithin: true, distance: 0, maxRadius: GEOFENCE_RADIUS_KM };
+  const distance = haversineDistance(
+    SHAHKOT_CENTER.lat,
+    SHAHKOT_CENTER.lng,
+    latitude,
+    longitude
+  );
 
-  // ORIGINAL CODE (uncomment to re-enable geofencing):
-  // const distance = haversineDistance(
-  //   SHAHKOT_CENTER.lat,
-  //   SHAHKOT_CENTER.lng,
-  //   latitude,
-  //   longitude
-  // );
-  //
-  // return {
-  //   isWithin: distance <= GEOFENCE_RADIUS_KM,
-  //   distance: Math.round(distance * 100) / 100,
-  //   maxRadius: GEOFENCE_RADIUS_KM,
-  // };
+  return {
+    isWithin: distance <= GEOFENCE_RADIUS_KM,
+    distance: Math.round(distance * 100) / 100,
+    maxRadius: GEOFENCE_RADIUS_KM,
+  };
 }

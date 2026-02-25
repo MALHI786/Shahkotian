@@ -343,7 +343,7 @@ eas build --platform android --profile production
 
 # Redeploy backend on Render (automatic if connected to GitHub)
 ```
-
+cd E:\Shahkot\ShahkotApp; eas build --platform android --non-interactive
 ---
 
 Built for the people of Shahkot 🇵🇰

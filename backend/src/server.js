@@ -117,12 +117,42 @@ async function startServer() {
       const pingUrl = `${selfUrl}/api/health`;
       const pingClient = require(pingUrl.startsWith('https') ? 'https' : 'http');
       setInterval(() => {
-        pingClient.get(pingUrl, (res) => {
-          console.log(`♻️ Keep-alive ping OK (${res.statusCode})`);
-        }).on('error', (e) => {
-          console.log(`⚠️ Keep-alive ping failed: ${e.message}`);
-        });
+        pingClient.get(pingUrl, () => {}).on('error', () => {});
       }, 14 * 60 * 1000); // Every 14 minutes
+
+      // ── Inactive Account Cleanup ──────────────────────────────────────────
+      // Delete non-admin users who have been inactive for 3+ months.
+      // lastSeenAt is updated on every login and every authenticated API call.
+      // Falls back to createdAt when lastSeenAt is null (legacy accounts).
+      async function deleteInactiveUsers() {
+        try {
+          const cutoff = new Date();
+          cutoff.setMonth(cutoff.getMonth() - 3);
+
+          const toDelete = await prisma.user.findMany({
+            where: {
+              role: { not: 'ADMIN' },
+              OR: [
+                { lastSeenAt: { lt: cutoff } },
+                { lastSeenAt: null, createdAt: { lt: cutoff } },
+              ],
+            },
+            select: { id: true, email: true, name: true },
+          });
+
+          if (toDelete.length === 0) return;
+
+          const ids = toDelete.map(u => u.id);
+          await prisma.user.deleteMany({ where: { id: { in: ids } } });
+          console.log(`🗑️ Deleted ${toDelete.length} inactive account(s) (3+ months).`);
+        } catch (err) {
+          console.error('Inactive cleanup error:', err.message);
+        }
+      }
+
+      // Run once at startup (catches long-dormant accounts), then every 24 h
+      setTimeout(deleteInactiveUsers, 30 * 1000);
+      setInterval(deleteInactiveUsers, 24 * 60 * 60 * 1000);
     });
 
     // Graceful shutdown handler

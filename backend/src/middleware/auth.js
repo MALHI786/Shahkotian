@@ -40,6 +40,13 @@ async function authenticate(req, res, next) {
     }
 
     req.user = user;
+
+    // Update lastSeenAt in background — do not await so request is not delayed
+    prisma.user.update({
+      where: { id: user.id },
+      data: { lastSeenAt: new Date() },
+    }).catch(() => {});
+
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {

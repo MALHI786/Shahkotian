@@ -224,13 +224,14 @@ router.post('/login', async (req, res) => {
       userRole = 'ADMIN';
     }
 
-    // Update location
-    if (latitude && longitude) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { latitude: parseFloat(latitude), longitude: parseFloat(longitude) },
-      });
-    }
+    // Update location and lastSeenAt
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        lastSeenAt: new Date(),
+        ...(latitude && longitude ? { latitude: parseFloat(latitude), longitude: parseFloat(longitude) } : {}),
+      },
+    });
 
     // Generate JWT
     const token = jwt.sign(

@@ -35,6 +35,7 @@ import OpenChatScreen from './src/screens/OpenChatScreen';
 import HelplineScreen from './src/screens/HelplineScreen';
 import DoctorsScreen from './src/screens/DoctorsScreen';
 import JobsScreen from './src/screens/JobsScreen';
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -122,7 +123,10 @@ function AppNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isAuthenticated ? (
-        <Stack.Screen name="Login" component={LoginScreen} />
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+        </>
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={MainTabs} />
@@ -145,6 +149,7 @@ function AppNavigator() {
           <Stack.Screen name="Helpline" component={HelplineScreen} />
           <Stack.Screen name="Doctors" component={DoctorsScreen} />
           <Stack.Screen name="Jobs" component={JobsScreen} />
+          <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         </>
       )}
     </Stack.Navigator>

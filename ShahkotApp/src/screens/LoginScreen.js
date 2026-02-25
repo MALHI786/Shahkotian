@@ -7,7 +7,7 @@ import { COLORS, APP_NAME } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const { register, login } = useAuth();
 
   // mode: 'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT' | 'RESET_OTP' | 'NEW_PASSWORD'
@@ -388,6 +388,16 @@ export default function LoginScreen() {
               {isRegister
                 ? 'Already have an account? Login'
                 : "Don't have an account? Register"}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Privacy Policy */}
+          <TouchableOpacity
+            style={[styles.switchButton, { marginTop: 8 }]}
+            onPress={() => navigation.navigate('PrivacyPolicy')}
+          >
+            <Text style={[styles.switchText, { color: COLORS.textSecondary, fontSize: 12 }]}>
+              🔒 Privacy Policy
             </Text>
           </TouchableOpacity>
         </View>
