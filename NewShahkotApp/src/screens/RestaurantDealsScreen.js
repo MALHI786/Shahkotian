@@ -45,6 +45,7 @@ export default function RestaurantDealsScreen({ navigation }) {
   const [dealOriginalPrice, setDealOriginalPrice] = useState('');
   const [dealImage, setDealImage] = useState(null);
   const [dealSubmitting, setDealSubmitting] = useState(false);
+  const [showOwnerLoginModal, setShowOwnerLoginModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -167,10 +168,12 @@ export default function RestaurantDealsScreen({ navigation }) {
     setOwnerLoginLoading(true);
     try {
       const res = await restaurantsAPI.ownerLogin({ email: ownerEmail.trim(), password: ownerPassword.trim() });
-      setOwnerToken(res.data.token);
-      // Load profile
-      const profileRes = await restaurantsAPI.ownerProfile(res.data.token);
+      const token = res.data.token;
+      setOwnerToken(token);
+      const profileRes = await restaurantsAPI.ownerProfile(token);
       setOwnerProfile(profileRes.data);
+      setShowOwnerLoginModal(false);
+      setActiveTab('owner');
     } catch (err) {
       Alert.alert('Login Failed', err.response?.data?.error || 'Invalid email or password.');
     } finally {
@@ -181,6 +184,7 @@ export default function RestaurantDealsScreen({ navigation }) {
   const handleOwnerLogout = () => {
     setOwnerToken(null); setOwnerProfile(null);
     setOwnerEmail(''); setOwnerPassword('');
+    setActiveTab('deals');
   };
 
   const reloadOwnerProfile = async () => {
@@ -359,7 +363,7 @@ export default function RestaurantDealsScreen({ navigation }) {
         {[
           { key: 'deals', label: '🔥 Deals', count: allDeals.length },
           { key: 'restaurants', label: '🍽️ Restaurants', count: restaurants.length },
-          { key: 'owner', label: '👤 Owner', count: 0 },
+          ...(ownerToken ? [{ key: 'owner', label: '👤 Owner', count: 0 }] : []),
           ...(isAdmin ? [{ key: 'admin', label: '⚙️ Admin', count: 0 }] : []),
         ].map(tab => (
           <TouchableOpacity
@@ -406,101 +410,72 @@ export default function RestaurantDealsScreen({ navigation }) {
               <Text style={styles.emptyText}>No restaurants yet</Text>
             </View>
           }
+          ListFooterComponent={
+            !ownerToken ? (
+              <TouchableOpacity
+                onPress={() => setShowOwnerLoginModal(true)}
+                style={{ alignItems: 'center', paddingVertical: 24 }}
+              >
+                <Text style={{ fontSize: 12, color: COLORS.textLight }}>Are you a restaurant owner?</Text>
+                <Text style={{ fontSize: 13, color: COLORS.primary, fontWeight: '600', marginTop: 2 }}>Login to manage your deals →</Text>
+              </TouchableOpacity>
+            ) : null
+          }
         />
       )}
 
-      {/* Owner Tab */}
-      {activeTab === 'owner' && (
+      {/* Owner Tab — only visible after owner login */}
+      {activeTab === 'owner' && ownerToken && (
         <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
-          {!ownerToken ? (
-            // ── Login form ──────────────────────────────────────────────────
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <View>
-              <Text style={styles.sectionTitle}>🔑 Restaurant Owner Login</Text>
-              <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 20, lineHeight: 18 }}>
-                Login with the email and password provided by the admin to manage your restaurant's deals.
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Email address"
-                value={ownerEmail}
-                onChangeText={setOwnerEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor={COLORS.textLight}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={ownerPassword}
-                onChangeText={setOwnerPassword}
-                secureTextEntry
-                placeholderTextColor={COLORS.textLight}
-              />
-              <TouchableOpacity
-                style={[styles.submitBtn, ownerLoginLoading && { opacity: 0.5 }]}
-                onPress={handleOwnerLogin}
-                disabled={ownerLoginLoading}
-              >
-                {ownerLoginLoading
-                  ? <ActivityIndicator color={COLORS.white} />
-                  : <Text style={styles.submitBtnText}>Login as Restaurant Owner</Text>
-                }
-              </TouchableOpacity>
+              <Text style={styles.sectionTitle}>🍽️ {ownerProfile?.name}</Text>
+              <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>📍 {ownerProfile?.address}</Text>
+            </View>
+            <TouchableOpacity onPress={handleOwnerLogout} style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 8 }}>
+              <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '700' }}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddDeal(true)}>
+            <Ionicons name="add-circle" size={22} color={COLORS.white} />
+            <Text style={styles.addBtnText}>Add New Deal</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.sectionTitle, { marginTop: 8 }]}>
+            Your Deals ({ownerProfile?.deals?.length || 0})
+          </Text>
+
+          {(!ownerProfile?.deals || ownerProfile.deals.length === 0) ? (
+            <View style={styles.empty}>
+              <Text style={{ fontSize: 40 }}>🏷️</Text>
+              <Text style={styles.emptyText}>No deals yet</Text>
+              <Text style={styles.emptySubText}>Tap "Add New Deal" to create your first deal</Text>
             </View>
           ) : (
-            // ── Owner dashboard ──────────────────────────────────────────────
-            <View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <View>
-                  <Text style={styles.sectionTitle}>🍽️ {ownerProfile?.name}</Text>
-                  <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>📍 {ownerProfile?.address}</Text>
-                </View>
-                <TouchableOpacity onPress={handleOwnerLogout} style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 8 }}>
-                  <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '700' }}>Logout</Text>
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddDeal(true)}>
-                <Ionicons name="add-circle" size={22} color={COLORS.white} />
-                <Text style={styles.addBtnText}>Add New Deal</Text>
-              </TouchableOpacity>
-
-              <Text style={[styles.sectionTitle, { marginTop: 8 }]}>
-                Your Deals ({ownerProfile?.deals?.length || 0})
-              </Text>
-
-              {(!ownerProfile?.deals || ownerProfile.deals.length === 0) ? (
-                <View style={styles.empty}>
-                  <Text style={{ fontSize: 40 }}>🏷️</Text>
-                  <Text style={styles.emptyText}>No deals yet</Text>
-                  <Text style={styles.emptySubText}>Tap "Add New Deal" to create your first deal</Text>
-                </View>
-              ) : (
-                ownerProfile.deals.map(deal => (
-                  <View key={deal.id} style={[styles.adminCard, { borderLeftWidth: 3, borderLeftColor: deal.isActive ? '#10B981' : '#EF4444' }]}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.adminCardName}>{deal.title}</Text>
-                        {deal.description ? <Text style={styles.adminCardSub}>{deal.description}</Text> : null}
-                        <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-                          {deal.originalPrice ? <Text style={{ fontSize: 12, color: COLORS.textLight, textDecorationLine: 'line-through' }}>{deal.originalPrice}</Text> : null}
-                          {deal.price ? <Text style={{ fontSize: 13, fontWeight: '700', color: '#10B981' }}>{deal.price}</Text> : null}
-                        </View>
-                        <Text style={[styles.adminCardSub, { color: deal.isActive ? '#10B981' : '#EF4444', marginTop: 4 }]}>
-                          {deal.isActive ? '✅ Active' : '❌ Inactive'}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteDeal(deal.id)}
-                        style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 8, marginLeft: 8 }}
-                      >
-                        <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '700' }}>🗑️ Delete</Text>
-                      </TouchableOpacity>
+            ownerProfile.deals.map(deal => (
+              <View key={deal.id} style={[styles.adminCard, { borderLeftWidth: 3, borderLeftColor: deal.isActive ? '#10B981' : '#EF4444' }]}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.adminCardName}>{deal.title}</Text>
+                    {deal.description ? <Text style={styles.adminCardSub}>{deal.description}</Text> : null}
+                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                      {deal.originalPrice ? <Text style={{ fontSize: 12, color: COLORS.textLight, textDecorationLine: 'line-through' }}>{deal.originalPrice}</Text> : null}
+                      {deal.price ? <Text style={{ fontSize: 13, fontWeight: '700', color: '#10B981' }}>{deal.price}</Text> : null}
                     </View>
+                    <Text style={[styles.adminCardSub, { color: deal.isActive ? '#10B981' : '#EF4444', marginTop: 4 }]}>
+                      {deal.isActive ? '✅ Active' : '❌ Inactive'}
+                    </Text>
                   </View>
-                ))
-              )}
-            </View>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteDeal(deal.id)}
+                    style={{ padding: 8, backgroundColor: '#FEE2E2', borderRadius: 8, marginLeft: 8 }}
+                  >
+                    <Text style={{ fontSize: 12, color: '#EF4444', fontWeight: '700' }}>🗑️ Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))
           )}
         </ScrollView>
       )}
@@ -544,7 +519,7 @@ export default function RestaurantDealsScreen({ navigation }) {
       )}
 
       {/* Restaurant Detail Modal */}
-      <Modal visible={!!selectedRestaurant} animationType="slide" transparent>
+      <Modal visible={!!selectedRestaurant} animationType="slide" transparent onRequestClose={() => setSelectedRestaurant(null)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <TouchableOpacity style={styles.modalClose} onPress={() => setSelectedRestaurant(null)}>
@@ -650,8 +625,54 @@ export default function RestaurantDealsScreen({ navigation }) {
         </View>
       </Modal>
 
+      {/* Owner Login Modal */}
+      <Modal visible={showOwnerLoginModal} animationType="slide" transparent onRequestClose={() => setShowOwnerLoginModal(false)}>
+        <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, justifyContent: 'flex-end' }}>
+            <View style={[styles.modalContent, { maxHeight: '70%' }]}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Text style={styles.detailName}>🔑 Owner Login</Text>
+                <TouchableOpacity onPress={() => setShowOwnerLoginModal(false)}>
+                  <Ionicons name="close" size={24} color={COLORS.text} />
+                </TouchableOpacity>
+              </View>
+              <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 20, lineHeight: 18 }}>
+                Login with the credentials provided by the admin to manage your restaurant's deals.
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Email address"
+                value={ownerEmail}
+                onChangeText={setOwnerEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor={COLORS.textLight}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                value={ownerPassword}
+                onChangeText={setOwnerPassword}
+                secureTextEntry
+                placeholderTextColor={COLORS.textLight}
+              />
+              <TouchableOpacity
+                style={[styles.submitBtn, ownerLoginLoading && { opacity: 0.5 }]}
+                onPress={handleOwnerLogin}
+                disabled={ownerLoginLoading}
+              >
+                {ownerLoginLoading
+                  ? <ActivityIndicator color={COLORS.white} />
+                  : <Text style={styles.submitBtnText}>Login as Restaurant Owner</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
       {/* Add Deal Modal (Owner) */}
-      <Modal visible={showAddDeal} animationType="slide" transparent>
+      <Modal visible={showAddDeal} animationType="slide" transparent onRequestClose={() => setShowAddDeal(false)}>
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, justifyContent: 'flex-end' }}>
             <View style={[styles.modalContent, { maxHeight: '90%' }]}>
