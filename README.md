@@ -21,11 +21,11 @@ Shahkot/
 │   ├── .env                    # Environment variables (CONFIGURE THIS)
 │   └── package.json
 │
-├── ShahkotApp/                 # React Native + Expo (Mobile)
+├── NewShahkotApp/              # React Native + Expo (Mobile)
 │   ├── src/
 │   │   ├── config/constants.js # App constants, colors, categories
 │   │   ├── context/AuthContext.js
-│   │   ├── screens/            # 14 screen components
+│   │   ├── screens/            # 25+ screen components
 │   │   ├── services/api.js     # Axios API layer
 │   │   └── utils/geolocation.js
 │   ├── App.js                  # Navigation setup
@@ -120,7 +120,7 @@ cd ShahkotApp
 npm install
 
 # Start Expo
-
+npx expo start
 ```
 
 Then scan the QR code with **Expo Go** app, or press `a` to launch Android emulator.
@@ -130,11 +130,10 @@ Then scan the QR code with **Expo Go** app, or press `a` to launch Android emula
 ## 📱 Features
 
 ### 1. Location Restriction (Geofencing)
-> ⚠️ **CURRENTLY DISABLED FOR TESTING** - See "Re-enabling Geofencing" section below
-
 - Haversine formula checks user is within 50KM of Shahkot center (31.9712°N, 73.4818°E)
-- When enabled, users outside the radius cannot register or access the app
-- Currently disabled to allow testing from any location
+- Users outside the radius cannot login or register
+- Location is checked on app launch before showing login screen
+- Backend also validates coordinates via geofenceCheck middleware
 
 ### 2. Social Feed (Posts)
 - Create text + image + video posts (max 5 images or 3 videos)

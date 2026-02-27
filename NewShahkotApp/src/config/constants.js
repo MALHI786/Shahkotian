@@ -1,5 +1,5 @@
 // Shahkot App API Configuration
-const DEV_API_URL = 'http://192.168.0.112:5000/api'; // Local network
+const DEV_API_URL = 'http://192.168.0.101:5000/api'; // Local network
 const PROD_API_URL = 'https://shahkotian.onrender.com/api';
 
 // EXPO_PUBLIC_API_URL is injected by EAS build profile (eas.json env section)

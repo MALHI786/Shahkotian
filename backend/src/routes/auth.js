@@ -98,7 +98,7 @@ router.post('/send-otp', async (req, res) => {
  * POST /api/auth/register
  * Register with email + OTP + password (no Firebase required)
  */
-router.post('/register', async (req, res) => {
+router.post('/register', geofenceCheck, async (req, res) => {
   try {
     const { name, email, password, otp, phone, whatsapp, latitude, longitude } = req.body;
 
@@ -193,7 +193,7 @@ router.post('/register', async (req, res) => {
  * POST /api/auth/login
  * Login with email + password
  */
-router.post('/login', async (req, res) => {
+router.post('/login', geofenceCheck, async (req, res) => {
   try {
     const { email, password, latitude, longitude } = req.body;
 
