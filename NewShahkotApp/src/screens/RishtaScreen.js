@@ -24,6 +24,8 @@ export default function RishtaScreen({ navigation }) {
   const [shortlisted, setShortlisted] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({ gender: '', minAge: '', maxAge: '' });
+  const [refreshingInterests, setRefreshingInterests] = useState(false);
+  const [deletingProfile, setDeletingProfile] = useState(false);
 
   // Application form
   const [age, setAge] = useState('');
@@ -158,6 +160,41 @@ export default function RishtaScreen({ navigation }) {
     loadProfiles();
   };
 
+  const handleRefreshInterests = async () => {
+    setRefreshingInterests(true);
+    await Promise.all([loadInterests(), loadSentInterests()]);
+    setRefreshingInterests(false);
+  };
+
+  const confirmDeleteProfile = () => {
+    Alert.alert(
+      '🗑️ Delete Rishta Profile',
+      'Are you sure you want to delete your Rishta profile? This will remove all your interests and shortlists permanently.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: deleteProfile,
+        },
+      ]
+    );
+  };
+
+  const deleteProfile = async () => {
+    setDeletingProfile(true);
+    try {
+      await rishtaAPI.deleteProfile();
+      Alert.alert('Deleted', 'Your Rishta profile has been deleted.');
+      setMyProfile(null);
+      checkProfile();
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to delete profile.');
+    } finally {
+      setDeletingProfile(false);
+    }
+  };
+
   const pickCNIC = async (side) => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -279,6 +316,17 @@ export default function RishtaScreen({ navigation }) {
         <Text style={styles.description}>
           Your Rishta profile is being reviewed by our admin team. You will receive an email notification when approved.
         </Text>
+        <TouchableOpacity
+          style={styles.withdrawBtn}
+          onPress={confirmDeleteProfile}
+          disabled={deletingProfile}
+        >
+          {deletingProfile ? (
+            <ActivityIndicator color="#F44336" />
+          ) : (
+            <Text style={styles.withdrawBtnText}>🗑️ Withdraw Application</Text>
+          )}
+        </TouchableOpacity>
         <View style={styles.statusTracker}>
           <View style={styles.statusStep}>
             <View style={[styles.statusDot, styles.statusDotDone]} />
@@ -327,6 +375,17 @@ export default function RishtaScreen({ navigation }) {
             <Text style={[styles.statusLabel, { color: '#F44336', fontWeight: '700' }]}>Rejected</Text>
           </View>
         </View>
+        <TouchableOpacity
+          style={styles.withdrawBtn}
+          onPress={confirmDeleteProfile}
+          disabled={deletingProfile}
+        >
+          {deletingProfile ? (
+            <ActivityIndicator color="#F44336" />
+          ) : (
+            <Text style={styles.withdrawBtnText}>🗑️ Delete & Re-apply</Text>
+          )}
+        </TouchableOpacity>
       </View>
     );
   }
@@ -455,7 +514,9 @@ export default function RishtaScreen({ navigation }) {
           <Text style={styles.rishtaBackIcon}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.rishtaHeaderTitle}>💍 Rishta</Text>
-        <View style={{ width: 38 }} />
+        <TouchableOpacity onPress={confirmDeleteProfile} style={styles.rishtaBackBtn} disabled={deletingProfile}>
+          <Text style={{ fontSize: 20, color: COLORS.white }}>🗑️</Text>
+        </TouchableOpacity>
       </View>
       {/* Tabs */}
       <View style={styles.tabsRow}>
@@ -651,6 +712,8 @@ export default function RishtaScreen({ navigation }) {
               data={interests}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ padding: 12 }}
+              refreshing={refreshingInterests}
+              onRefresh={handleRefreshInterests}
               renderItem={({ item }) => (
                 <View style={styles.interestCard}>
                   <View style={styles.profileHeader}>
@@ -710,6 +773,8 @@ export default function RishtaScreen({ navigation }) {
               data={sentInterests}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ padding: 12 }}
+              refreshing={refreshingInterests}
+              onRefresh={handleRefreshInterests}
               renderItem={({ item }) => {
                 const profileUser = item.profile?.user;
                 return (
@@ -889,6 +954,15 @@ const styles = StyleSheet.create({
   statusLineActive: { backgroundColor: COLORS.primary },
   statusLabel: { fontSize: 11, color: COLORS.textLight },
   statusDate: { fontSize: 12, color: COLORS.textLight, marginTop: 4 },
+  withdrawBtn: {
+    marginTop: 20,
+    borderWidth: 1.5,
+    borderColor: '#F44336',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  withdrawBtnText: { color: '#F44336', fontWeight: '700', fontSize: 14 },
   // New Dil Ka Rishta-like styles
   tabsRow: {
     flexDirection: 'row',

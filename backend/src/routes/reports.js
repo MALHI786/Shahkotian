@@ -51,8 +51,45 @@ router.get('/', authenticate, adminOnly, async (req, res) => {
             }),
         ]);
 
+        // For each report, fetch last 5 context messages based on targetType
+        const enriched = await Promise.all(reports.map(async (report) => {
+            let contextMessages = [];
+            try {
+                if (report.targetType === 'CHAT_MESSAGE') {
+                    // Open chat: fetch 5 messages around the reported one
+                    const targetMsg = await prisma.chatMessage.findUnique({ where: { id: report.targetId } });
+                    if (targetMsg) {
+                        contextMessages = await prisma.chatMessage.findMany({
+                            where: { createdAt: { lte: targetMsg.createdAt } },
+                            orderBy: { createdAt: 'desc' },
+                            take: 5,
+                            include: { user: { select: { id: true, name: true } } },
+                        });
+                        contextMessages = contextMessages.reverse();
+                    }
+                } else if (report.targetType === 'DM_MESSAGE') {
+                    // Direct message: fetch last 5 DM messages from that chat
+                    const targetDmMsg = await prisma.dMMessage.findUnique({ where: { id: report.targetId } });
+                    if (targetDmMsg) {
+                        contextMessages = await prisma.dMMessage.findMany({
+                            where: { chatId: targetDmMsg.chatId, createdAt: { lte: targetDmMsg.createdAt } },
+                            orderBy: { createdAt: 'desc' },
+                            take: 5,
+                            include: { sender: { select: { id: true, name: true } } },
+                        });
+                        contextMessages = contextMessages.reverse().map(m => ({
+                            ...m, user: m.sender, // normalize field name
+                        }));
+                    }
+                }
+            } catch (ctxErr) {
+                console.error('Context messages error:', ctxErr.message);
+            }
+            return { ...report, contextMessages };
+        }));
+
         res.json({
-            reports,
+            reports: enriched,
             pagination: { page: parseInt(page), total, totalPages: Math.ceil(total / parseInt(limit)) },
         });
     } catch (error) {

@@ -27,6 +27,7 @@ const CATEGORIES = [
       { key: 'Bazar', label: 'Bazar Finder', icon: 'storefront', desc: 'Find Shops', color: '#3B82F6' },
       { key: 'GovtOffices', label: 'Govt Offices', icon: 'business', desc: 'Directory & Helplines', color: '#F59E0B' },
       { key: 'Doctors', label: 'Doctors', icon: 'medkit', desc: 'Find Healthcare', color: '#E11D48' },
+      { key: 'RestaurantDeals', label: 'Restaurants', icon: 'restaurant', desc: 'Deals & Offers', color: '#F97316' },
     ],
   },
   {

@@ -580,3 +580,44 @@ model Doctor {
   @@index([specialty])
   @@index([name])
 }
+
+// ============ RESTAURANTS & DEALS ============
+
+model Restaurant {
+  id          String   @id @default(uuid())
+  name        String
+  address     String
+  phone       String?
+  whatsapp    String?
+  description String?
+  image       String?  // Logo / cover image
+  email       String   @unique // Login email for restaurant owner
+  password    String   // Hashed password for restaurant owner
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deals Deal[]
+
+  @@index([name])
+  @@index([isActive])
+}
+
+model Deal {
+  id           String   @id @default(uuid())
+  restaurantId String
+  title        String
+  description  String?
+  price        String?  // e.g., "Rs. 500" or "50% OFF"
+  originalPrice String? // e.g., "Rs. 1000"
+  image        String?
+  isActive     Boolean  @default(true)
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([restaurantId])
+  @@index([isActive, createdAt(sort: Desc)])
+}

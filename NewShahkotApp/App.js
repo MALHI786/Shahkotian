@@ -36,6 +36,7 @@ import HelplineScreen from './src/screens/HelplineScreen';
 import DoctorsScreen from './src/screens/DoctorsScreen';
 import JobsScreen from './src/screens/JobsScreen';
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
+import RestaurantDealsScreen from './src/screens/RestaurantDealsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -149,6 +150,7 @@ function AppNavigator() {
           <Stack.Screen name="Helpline" component={HelplineScreen} />
           <Stack.Screen name="Doctors" component={DoctorsScreen} />
           <Stack.Screen name="Jobs" component={JobsScreen} />
+          <Stack.Screen name="RestaurantDeals" component={RestaurantDealsScreen} />
           <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         </>
       )}

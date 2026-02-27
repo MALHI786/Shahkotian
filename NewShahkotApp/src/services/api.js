@@ -127,6 +127,7 @@ export const rishtaAPI = {
   rejectInterest: (interestId) => api.put(`/rishta/interest/${interestId}/reject`),
   shortlist: (profileId) => api.post(`/rishta/shortlist/${profileId}`),
   getShortlisted: () => api.get('/rishta/shortlisted'),
+  deleteProfile: () => api.delete('/rishta/my-profile'),
 };
 
 // ============ NEWS API ============
@@ -162,6 +163,7 @@ export const chatAPI = {
   getUserProfile: (userId) => api.get(`/chat/user/${userId}`),
   reactToMessage: (msgId, emoji) => api.post(`/chat/messages/${msgId}/react`, { emoji }),
   reportMessage: (data) => api.post('/chat/report', data),
+  deleteMessage: (msgId) => api.delete(`/chat/messages/${msgId}`),
 };
 
 // ============ CHATBOT API ============
@@ -254,5 +256,32 @@ export const jobsAPI = {
 // ============ ALIASES FOR BACKWARDS COMPATIBILITY ============
 export const listingAPI = listingsAPI;
 export const tournamentAPI = tournamentsAPI;
+
+// ============ RESTAURANTS & DEALS API ============
+export const restaurantsAPI = {
+  getAll: (params) => api.get('/restaurants', { params }),
+  getOne: (id) => api.get(`/restaurants/${id}`),
+  getAllDeals: () => api.get('/restaurants/deals/all'),
+  // Admin
+  adminCreate: (formData) => api.post('/restaurants/admin/create', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  adminUpdate: (id, data) => api.put(`/restaurants/admin/${id}`, data),
+  adminDelete: (id) => api.delete(`/restaurants/admin/${id}`),
+  // Restaurant owner auth (uses separate token stored per session)
+  ownerLogin: (data) => api.post('/restaurants/auth/login', data),
+  ownerProfile: (token) => api.get('/restaurants/owner/profile', {
+    headers: { Authorization: `Bearer ${token}` },
+  }),
+  ownerCreateDeal: (token, formData) => api.post('/restaurants/owner/deals', formData, {
+    headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}` },
+  }),
+  ownerUpdateDeal: (token, dealId, data) => api.put(`/restaurants/owner/deals/${dealId}`, data, {
+    headers: { Authorization: `Bearer ${token}` },
+  }),
+  ownerDeleteDeal: (token, dealId) => api.delete(`/restaurants/owner/deals/${dealId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  }),
+};
 
 export default api;

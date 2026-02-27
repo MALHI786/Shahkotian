@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions,
   Image, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, APP_NAME } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +11,7 @@ import { postsAPI, listingsAPI, newsAPI, tournamentsAPI, jobsAPI, notificationsA
 
 const { width } = Dimensions.get('window');
 const CARD_W = (width - 48) / 2;
+const HOME_CACHE_KEY = '@home_cache';
 
 export default function HomeScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
@@ -30,11 +32,28 @@ export default function HomeScreen({ navigation }) {
   };
 
   useEffect(() => {
+    loadCachedData();
     loadHomeData();
     loadUnreadCount();
     const interval = setInterval(loadUnreadCount, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  // Load cached data first for instant display
+  const loadCachedData = async () => {
+    try {
+      const cached = await AsyncStorage.getItem(HOME_CACHE_KEY);
+      if (cached) {
+        const data = JSON.parse(cached);
+        if (data.listings) setTrendingListings(data.listings);
+        if (data.news) setLatestNews(data.news);
+        if (data.tournaments) setUpcomingMatches(data.tournaments);
+        if (data.posts) setRecentPosts(data.posts);
+        if (data.jobs) setLatestJobs(data.jobs);
+        setLoading(false); // show cached content immediately
+      }
+    } catch {}
+  };
 
   const loadUnreadCount = async () => {
     try {
@@ -52,11 +71,20 @@ export default function HomeScreen({ navigation }) {
         postsAPI.getFeed(1),
         jobsAPI.getAll({ limit: 4 }),
       ]);
-      if (listingsRes.status === 'fulfilled') setTrendingListings(listingsRes.value.data.listings?.slice(0, 6) || []);
-      if (newsRes.status === 'fulfilled') setLatestNews(newsRes.value.data.news?.slice(0, 4) || []);
-      if (tournamentsRes.status === 'fulfilled') setUpcomingMatches(tournamentsRes.value.data.tournaments?.slice(0, 3) || []);
-      if (postsRes.status === 'fulfilled') setRecentPosts(postsRes.value.data.posts?.slice(0, 4) || []);
-      if (jobsRes.status === 'fulfilled') setLatestJobs(jobsRes.value.data.jobs?.slice(0, 4) || []);
+      const listings = listingsRes.status === 'fulfilled' ? listingsRes.value.data.listings?.slice(0, 6) || [] : trendingListings;
+      const news = newsRes.status === 'fulfilled' ? newsRes.value.data.news?.slice(0, 4) || [] : latestNews;
+      const tournaments = tournamentsRes.status === 'fulfilled' ? tournamentsRes.value.data.tournaments?.slice(0, 3) || [] : upcomingMatches;
+      const posts = postsRes.status === 'fulfilled' ? postsRes.value.data.posts?.slice(0, 4) || [] : recentPosts;
+      const jobs = jobsRes.status === 'fulfilled' ? jobsRes.value.data.jobs?.slice(0, 4) || [] : latestJobs;
+
+      setTrendingListings(listings);
+      setLatestNews(news);
+      setUpcomingMatches(tournaments);
+      setRecentPosts(posts);
+      setLatestJobs(jobs);
+
+      // Cache for next launch
+      AsyncStorage.setItem(HOME_CACHE_KEY, JSON.stringify({ listings, news, tournaments, posts, jobs })).catch(() => {});
     } catch (error) {
       console.error('Home data error:', error);
     } finally {
@@ -77,6 +105,7 @@ export default function HomeScreen({ navigation }) {
     { key: 'News & Articles', label: 'News', icon: 'newspaper', color: '#8B5CF6' },
     { key: 'Tournaments', label: 'Sports', icon: 'trophy', color: '#10B981' },
     { key: 'Bazar', label: 'Bazar', icon: 'storefront', color: '#3B82F6' },
+    { key: 'RestaurantDeals', label: 'Food Deals', icon: 'restaurant', color: '#F97316' },
     { key: 'BloodDonation', label: 'Blood', icon: 'water', color: '#B91C1C' },
     { key: 'Doctors', label: 'Doctors', icon: 'medkit', color: '#E11D48' },
     { key: 'Weather', label: 'Weather', icon: 'partly-sunny', color: '#0EA5E9' },

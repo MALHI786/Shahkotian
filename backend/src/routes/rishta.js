@@ -470,4 +470,33 @@ router.get('/shortlisted', authenticate, verifiedOnly, async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/rishta/my-profile
+ * Delete own Rishta profile (any status: PENDING, APPROVED, REJECTED)
+ */
+router.delete('/my-profile', authenticate, async (req, res) => {
+  try {
+    const profile = await prisma.rishtaProfile.findUnique({
+      where: { userId: req.user.id },
+    });
+
+    if (!profile) {
+      return res.status(404).json({ error: 'No Rishta profile found.' });
+    }
+
+    // Delete in correct order to respect foreign key constraints
+    // 1. Delete interests involving this profile
+    await prisma.rishtaInterest.deleteMany({ where: { profileId: profile.id } });
+    // 2. Delete shortlists for this profile
+    await prisma.rishtaShortlist.deleteMany({ where: { profileId: profile.id } });
+    // 3. Delete the profile
+    await prisma.rishtaProfile.delete({ where: { id: profile.id } });
+
+    res.json({ message: 'Your Rishta profile has been deleted.' });
+  } catch (error) {
+    console.error('Delete rishta profile error:', error);
+    res.status(500).json({ error: 'Failed to delete profile.' });
+  }
+});
+
 module.exports = router;

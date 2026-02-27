@@ -519,6 +519,32 @@ export default function AdminDashboardScreen({ navigation }) {
             <Text style={styles.contentSub}>
               {new Date(item.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
             </Text>
+
+            {/* Context: Last 5 messages */}
+            {item.contextMessages && item.contextMessages.length > 0 && (
+              <View style={{ marginTop: 10, backgroundColor: '#f0f0f0', borderRadius: 8, padding: 10 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.primary, marginBottom: 6 }}>
+                  💬 Last {item.contextMessages.length} Messages:
+                </Text>
+                {item.contextMessages.map((msg, idx) => {
+                  const isTarget = msg.id === item.targetId;
+                  return (
+                    <View key={msg.id || idx} style={{
+                      marginBottom: 4, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6,
+                      backgroundColor: isTarget ? '#FECACA' : '#fff',
+                      borderLeftWidth: isTarget ? 3 : 0, borderLeftColor: '#EF4444',
+                    }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: isTarget ? '#EF4444' : '#333' }}>
+                        {msg.user?.name || msg.sender?.name || 'User'}{isTarget ? ' ⚠️ REPORTED' : ''}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#444' }} numberOfLines={3}>
+                        {msg.text || (msg.images?.length > 0 ? '📷 Photo' : (msg.voiceUrl ? '🎤 Voice' : '—'))}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </View>
           {reportFilter === 'PENDING' && (
             <View style={{ justifyContent: 'center', gap: 6 }}>

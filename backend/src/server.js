@@ -27,6 +27,7 @@ const dmRoutes = require('./routes/dm');
 const jobRoutes = require('./routes/jobs');
 const reportRoutes = require('./routes/reports');
 const doctorRoutes = require('./routes/doctors');
+const restaurantRoutes = require('./routes/restaurants');
 
 const app = express();
 
@@ -83,6 +84,7 @@ app.use('/api/dm', dmRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/restaurants', restaurantRoutes);
 
 // 404 handler
 app.use((req, res) => {

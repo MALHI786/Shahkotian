@@ -543,6 +543,24 @@ export default function OpenChatScreen({ navigation }) {
                             <TouchableOpacity style={styles.menuItem} onPress={() => viewProfile(menuMsg.userId)}>
                                 <Text style={styles.menuText}>👤 View Profile</Text>
                             </TouchableOpacity>
+                            {menuMsg.userId === user?.id && (
+                                <TouchableOpacity style={styles.menuItem} onPress={() => {
+                                    Alert.alert('Delete Message', 'Are you sure you want to delete this message?', [
+                                        { text: 'Cancel', style: 'cancel' },
+                                        { text: 'Delete', style: 'destructive', onPress: async () => {
+                                            try {
+                                                await chatAPI.deleteMessage(menuMsg.id);
+                                                setMessages(prev => prev.filter(m => m.id !== menuMsg.id));
+                                                setMenuMsg(null);
+                                            } catch (e) {
+                                                Alert.alert('Error', 'Could not delete message');
+                                            }
+                                        }}
+                                    ]);
+                                }}>
+                                    <Text style={[styles.menuText, { color: '#FF4444' }]}>🗑️ Delete</Text>
+                                </TouchableOpacity>
+                            )}
                             {menuMsg.userId !== user?.id && (
                                 <TouchableOpacity style={[styles.menuItem, { borderBottomWidth: 0 }]} onPress={() => reportMessage(menuMsg)}>
                                     <Text style={[styles.menuText, { color: COLORS.accent }]}>🚩 Report</Text>

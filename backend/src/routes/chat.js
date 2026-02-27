@@ -115,6 +115,25 @@ router.get('/user/:userId', authenticate, async (req, res) => {
     }
 });
 
+// Delete own chat message (sender only)
+router.delete('/messages/:messageId', authenticate, async (req, res) => {
+    try {
+        const message = await prisma.chatMessage.findUnique({
+            where: { id: req.params.messageId },
+        });
+        if (!message) return res.status(404).json({ error: 'Message not found' });
+        if (message.userId !== req.user.id) {
+            return res.status(403).json({ error: 'You can only delete your own messages.' });
+        }
+
+        await prisma.chatMessage.delete({ where: { id: req.params.messageId } });
+        res.json({ message: 'Message deleted.' });
+    } catch (error) {
+        console.error('Delete chat message error:', error);
+        res.status(500).json({ error: 'Failed to delete message' });
+    }
+});
+
 // Report a chat message
 router.post('/report', authenticate, async (req, res) => {
     try {
