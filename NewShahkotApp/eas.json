@@ -18,7 +18,8 @@
                 "buildType": "apk"
             },
             "env": {
-                "EXPO_PUBLIC_API_URL": "https://lionfish-app-tkr7y.ondigitalocean.app/api"
+                "EXPO_PUBLIC_API_URL": "https://lionfish-app-tkr7y.ondigitalocean.app/api",
+                "EXPO_PUBLIC_USE_ADS": "true"
             }
         },
         "production": {
@@ -26,7 +27,8 @@
                 "buildType": "app-bundle"
             },
             "env": {
-                "EXPO_PUBLIC_API_URL": "https://lionfish-app-tkr7y.ondigitalocean.app/api"
+                "EXPO_PUBLIC_API_URL": "https://lionfish-app-tkr7y.ondigitalocean.app/api",
+                "EXPO_PUBLIC_USE_ADS": "true"
             }
         }
     }
