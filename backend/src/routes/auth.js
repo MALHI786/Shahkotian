@@ -47,8 +47,7 @@ router.get('/test-smtp', async (req, res) => {
       ? `Email sent successfully via ${provider}!`
       : `Email FAILED via ${provider} — see error above`,
   });
-}
-
+});
 
 router.post('/send-otp', async (req, res) => {
   try {
