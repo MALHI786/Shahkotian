@@ -397,6 +397,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
           keyExtractor={(item) => item.id}
           renderItem={renderDealCard}
           contentContainerStyle={{ padding: 12 }}
+          ListHeaderComponent={<AdBanner />}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View style={styles.empty}>
@@ -415,6 +416,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
           keyExtractor={(item) => item.id}
           renderItem={renderRestaurantCard}
           contentContainerStyle={{ padding: 12 }}
+          ListHeaderComponent={<AdBanner />}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View style={styles.empty}>

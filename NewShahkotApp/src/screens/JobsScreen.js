@@ -467,6 +467,7 @@ export default function JobsScreen({ navigation }) {
           keyExtractor={(item) => item.id}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadJobs(); }} />}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+          ListHeaderComponent={<AdBanner />}
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="briefcase-outline" size={56} color={COLORS.textLight} />

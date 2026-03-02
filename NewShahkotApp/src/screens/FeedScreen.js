@@ -544,6 +544,7 @@ export default function FeedScreen({ navigation }) {
         updateCellsBatchingPeriod={50}
         windowSize={10}
         initialNumToRender={5}
+        ListHeaderComponent={<AdBanner size="ANCHORED_ADAPTIVE_BANNER" />}
         ListEmptyComponent={
           !loading && (
             <View style={styles.emptyContainer}>

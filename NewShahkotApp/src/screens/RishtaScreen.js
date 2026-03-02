@@ -634,6 +634,7 @@ export default function RishtaScreen({ navigation }) {
           data={(() => { const out = []; profiles.forEach((p, i) => { out.push(p); if ((i + 1) % 4 === 0) out.push({ id: `ad-rishta-${i}`, type: 'AD_ITEM' }); }); return out; })()}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 12 }}
+          ListHeaderComponent={<AdBanner />}
           renderItem={({ item }) => {
             if (item.type === 'AD_ITEM') return <AdBanner />;
             return (

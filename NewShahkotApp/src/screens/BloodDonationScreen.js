@@ -7,6 +7,7 @@ import { COLORS } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
 import { bloodAPI } from '../services/api';
 import AdBanner from '../components/AdBanner';
+import LOCAL_DONORS_RAW from '../data/bloodDonors';
 
 const BLOOD_GROUPS = [
   { key: 'A_POSITIVE', label: 'A+', color: '#EF4444' },
@@ -24,6 +25,10 @@ const FINDER_MODES = [
   { key: 'emergency', emoji: '🚨', label: 'SOS', color: '#DC2626' },
   { key: 'normal', emoji: '📋', label: 'Normal', color: '#10B981' },
 ];
+
+// Map short label (e.g. 'A+') → BLOOD_GROUPS key (e.g. 'A_POSITIVE')
+const GROUP_LABEL_MAP = {};
+BLOOD_GROUPS.forEach(g => { GROUP_LABEL_MAP[g.label] = g.key; });
 
 export default function BloodDonationScreen({ navigation }) {
   const { user } = useAuth();
@@ -272,6 +277,52 @@ export default function BloodDonationScreen({ navigation }) {
           keyExtractor={(item) => item.id}
           renderItem={renderDonor}
           contentContainerStyle={{ padding: 12, paddingBottom: 40 }}
+          ListHeaderComponent={<AdBanner />}
+          ListFooterComponent={() => {
+            // Filter local (Awami Welfare Foundation) donors by selected blood group
+            const filtered = LOCAL_DONORS_RAW.filter(d => {
+              if (!selectedGroup) return true;
+              return GROUP_LABEL_MAP[d.group] === selectedGroup;
+            });
+            if (finderMode === 'emergency') return null; // local donors have no emergency flag
+            return (
+              <View style={{ marginTop: 8 }}>
+                <View style={styles.localSectionHeader}>
+                  <Text style={styles.localSectionTitle}>🤝 Awami Welfare Foundation Donors</Text>
+                </View>
+                <AdBanner />
+                {filtered.length === 0 ? (
+                  <Text style={{ color: '#999', textAlign: 'center', padding: 16, fontSize: 13 }}>No community donors for this blood group.</Text>
+                ) : (
+                  filtered.map((donor, i) => {
+                    const bgInfo = BLOOD_GROUPS.find(g => g.label === donor.group) || { color: '#999' };
+                    return (
+                      <View key={`local-${i}`} style={styles.donorCard}>
+                        <View style={styles.donorHeader}>
+                          <View style={[styles.bloodBadge, { backgroundColor: bgInfo.color }]}>
+                            <Text style={styles.bloodBadgeText}>{donor.group}</Text>
+                          </View>
+                          <View style={{ flex: 1, marginLeft: 12 }}>
+                            <Text style={styles.donorName}>{donor.name}</Text>
+                          </View>
+                        </View>
+                        {donor.contact ? (
+                          <View style={styles.donorActions}>
+                            <TouchableOpacity style={styles.callBtn} onPress={() => callDonor(donor.contact)}>
+                              <Text style={styles.callBtnText}>📞 Call</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.whatsappBtn} onPress={() => whatsappDonor(donor.contact, donor.name)}>
+                              <Text style={styles.whatsappBtnText}>💬 WhatsApp</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ) : null}
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            );
+          }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadDonors(); }} />
           }
@@ -607,4 +658,14 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   submitText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  localSectionHeader: {
+    backgroundColor: '#FFF3CD',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#DC2626',
+    marginTop: 4,
+  },
+  localSectionTitle: { fontSize: 15, fontWeight: '700', color: '#DC2626' },
 });
