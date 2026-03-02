@@ -1,17 +1,18 @@
-// Generic SMTP email — works with Amazon SES, Gmail, or any SMTP provider.
-// Set these env vars on DigitalOcean App Platform:
+// Email sending — supports two providers (checked in order):
 //
-// Amazon SES (recommended — free 62,000 emails/month from EC2/App Platform):
-//   EMAIL_HOST = email-smtp.us-east-1.amazonaws.com
-//   EMAIL_PORT = 587
-//   EMAIL_USER = <your SES SMTP username from AWS Console → SES → SMTP Settings → Manage credentials>
-//   EMAIL_PASS = <your SES SMTP password>
+// 1. Resend (recommended — easiest, 3,000 free emails/month):
+//    Sign up at resend.com → API Keys → Create key
+//    Set on DigitalOcean:
+//      RESEND_API_KEY = re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+//      EMAIL_FROM     = Apna Shahkot <noreply@yourdomain.com>
+//                       (use onboarding@resend.dev for testing before domain verified)
 //
-// Gmail fallback:
-//   EMAIL_HOST = smtp.gmail.com
-//   EMAIL_PORT = 465
-//   EMAIL_USER = your@gmail.com
-//   EMAIL_PASS = <16-char App Password from myaccount.google.com/security>
+// 2. SMTP fallback (Amazon SES, Gmail, etc.):
+//    EMAIL_HOST = email-smtp.us-east-1.amazonaws.com
+//    EMAIL_PORT = 587
+//    EMAIL_USER = <SES SMTP username>
+//    EMAIL_PASS = <SES SMTP password>
+//    EMAIL_FROM = verified@yourdomain.com
 
 const nodemailer = require('nodemailer');
 
@@ -21,7 +22,6 @@ function getTransporter() {
   if (_transporter) return _transporter;
   const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
   const port = parseInt(process.env.EMAIL_PORT || '465', 10);
-  // port 465 uses SSL (secure:true), 587 uses STARTTLS (secure:false, starttls upgrades automatically)
   const secure = port === 465;
   _transporter = nodemailer.createTransport({
     host,
@@ -36,34 +36,62 @@ function getTransporter() {
 }
 
 /**
- * Send email via Gmail SMTP
+ * Send email via Resend API (primary) or SMTP (fallback)
  * @param {string} to - Recipient email
  * @param {string} subject - Email subject
  * @param {string} html - Email HTML content
  */
 async function sendEmail(to, subject, html) {
-  try {
-    const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
+  const resendKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM || '"Apna Shahkot" <onboarding@resend.dev>';
 
-    if (!user || !pass) {
-      console.error('EMAIL_USER or EMAIL_PASS is not set in environment variables');
-      return { ok: false, error: 'Email credentials not configured (set EMAIL_USER and EMAIL_PASS)' };
+  // ── Provider 1: Resend REST API ──────────────────────────────────────────
+  if (resendKey) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ from: fromEmail, to, subject, html }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error('Resend API error:', data);
+        return { ok: false, error: data.message || data.name || JSON.stringify(data) };
+      }
+      console.log(`[Resend] Email sent to ${to}: ${subject} (id: ${data.id})`);
+      return { ok: true, id: data.id };
+    } catch (err) {
+      console.error('[Resend] Fetch error:', err.message);
+      return { ok: false, error: err.message };
     }
+  }
 
+  // ── Provider 2: SMTP fallback ─────────────────────────────────────────────
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+  if (!user || !pass) {
+    console.error('No email provider configured. Set RESEND_API_KEY (recommended) or EMAIL_USER + EMAIL_PASS for SMTP.');
+    return { ok: false, error: 'No email provider configured. Set RESEND_API_KEY or EMAIL_USER + EMAIL_PASS.' };
+  }
+
+  try {
     const transporter = getTransporter();
+    const from = fromEmail || `"Apna Shahkot" <${user}>`;
+    const envelopeFrom = user; // SMTP envelope must match verified sender
     const info = await transporter.sendMail({
-      from: `"Apna Shahkot" <${user}>`,
+      from,
       to,
       subject,
       html,
+      envelope: { from: envelopeFrom, to },
     });
-
-    console.log(`Email sent to ${to}: ${subject} (messageId: ${info.messageId})`);
+    console.log(`[SMTP] Email sent to ${to}: ${subject} (messageId: ${info.messageId})`);
     return { ok: true };
   } catch (error) {
-    console.error('Email send error:', error.message);
-    // Reset transporter so next call retries fresh
+    console.error('[SMTP] Email send error:', error.message);
     _transporter = null;
     return { ok: false, error: error.message };
   }

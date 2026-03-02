@@ -32,15 +32,19 @@ const router = express.Router();
  */
 router.get('/test-smtp', async (req, res) => {
   const testEmail = req.query.email || process.env.ADMIN_EMAIL || 'test@example.com';
-  const result = await sendEmail(testEmail, '✅ Email Test — Apna Shahkot', '<p>SMTP email is working!</p>');
+  const result = await sendEmail(testEmail, '✅ Email Test — Apna Shahkot', '<p>Email is working!</p>');
+  const provider = process.env.RESEND_API_KEY ? 'Resend' : 'SMTP';
   res.json({
     success: result.ok,
     error: result.error || null,
-    smtpHost: process.env.EMAIL_HOST || 'NOT SET',
-    smtpPort: process.env.EMAIL_PORT || 'NOT SET',
-    emailUserSet: !!process.env.EMAIL_USER,
-    senderEmail: process.env.EMAIL_USER || 'NOT SET',
-    message: result.ok ? `Email sent successfully via ${process.env.EMAIL_HOST}!` : 'Email FAILED — see error above',
+    provider,
+    resendKeySet: !!process.env.RESEND_API_KEY,
+    emailFrom: process.env.EMAIL_FROM || 'NOT SET',
+    smtpHost: process.env.EMAIL_HOST || 'NOT SET (SMTP unused if Resend key set)',
+    smtpUserSet: !!process.env.EMAIL_USER,
+    message: result.ok
+      ? `Email sent successfully via ${provider}!`
+      : `Email FAILED via ${provider} — see error above`,
   });
 });
 

@@ -8,6 +8,7 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth } from '../context/AuthContext';
 import { chatAPI } from '../services/api';
+import AdBanner from '../components/AdBanner';
 
 // WhatsApp-style dark theme
 const COLORS = {
@@ -511,6 +512,7 @@ export default function OpenChatScreen({ navigation }) {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
         >
+            <AdBanner size="ANCHORED_ADAPTIVE_BANNER" />
             <FlatList
                 ref={flatListRef}
                 data={messages}
