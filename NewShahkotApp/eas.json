@@ -9,7 +9,7 @@
                 "simulator": true
             },
             "env": {
-                "EXPO_PUBLIC_API_URL": "https://shahkotian.onrender.com/api",
+                "EXPO_PUBLIC_API_URL": "https://lionfish-app-tkr7y.ondigitalocean.app/api",
                 "EXPO_PUBLIC_SKIP_GEOFENCE": "true"
             }
         },
@@ -18,15 +18,15 @@
                 "buildType": "apk"
             },
             "env": {
-                "EXPO_PUBLIC_API_URL": "https://shahkotian.onrender.com/api"
+                "EXPO_PUBLIC_API_URL": "https://lionfish-app-tkr7y.ondigitalocean.app/api"
             }
         },
         "production": {
             "android": {
-                "buildType": "apk"
+                "buildType": "app-bundle"
             },
             "env": {
-                "EXPO_PUBLIC_API_URL": "https://shahkotian.onrender.com/api"
+                "EXPO_PUBLIC_API_URL": "https://lionfish-app-tkr7y.ondigitalocean.app/api"
             }
         }
     }
