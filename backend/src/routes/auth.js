@@ -33,19 +33,17 @@ const router = express.Router();
 router.get('/test-smtp', async (req, res) => {
   const testEmail = req.query.email || process.env.ADMIN_EMAIL || 'test@example.com';
   const result = await sendEmail(testEmail, '✅ Email Test — Apna Shahkot', '<p>Email is working from Apna Shahkot!</p>');
-  const provider = process.env.AWS_ACCESS_KEY_ID ? 'AWS SES SDK' : process.env.EMAIL_USER ? 'SES SMTP' : process.env.RESEND_API_KEY ? 'Resend' : 'None';
   res.json({
     success: result.ok,
+    provider: result.provider || 'Unknown',
     error: result.error || null,
-    provider,
-    awsKeySet: !!process.env.AWS_ACCESS_KEY_ID,
-    awsRegion: process.env.AWS_REGION || 'us-east-1 (default)',
     emailFrom: process.env.EMAIL_FROM || 'NOT SET',
-    smtpUserSet: !!process.env.EMAIL_USER,
     resendKeySet: !!process.env.RESEND_API_KEY,
+    awsKeySet: !!process.env.AWS_ACCESS_KEY_ID,
+    smtpUserSet: !!process.env.EMAIL_USER,
     message: result.ok
-      ? `Email sent successfully via ${provider}!`
-      : `Email FAILED via ${provider} — see error above`,
+      ? `✅ Email sent via ${result.provider}!`
+      : `❌ Email FAILED via ${result.provider} — ${result.error}`,
   });
 });
 

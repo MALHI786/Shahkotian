@@ -1,27 +1,13 @@
-// Email sending — supports three providers (checked in this order):
-//
-// 1. AWS SES SDK (primary — 62,000 free emails/month):
-//    Set on DigitalOcean:
-//      AWS_ACCESS_KEY_ID     = your IAM access key  (AKIA...)
-//      AWS_SECRET_ACCESS_KEY = your IAM secret key
-//      AWS_REGION            = us-east-1
-//      EMAIL_FROM            = mypcjnaab@gmail.com  (must be verified in SES)
-//
-// 2. SES SMTP fallback:
-//    EMAIL_HOST = email-smtp.us-east-1.amazonaws.com
-//    EMAIL_PORT = 587
-//    EMAIL_USER = <SES SMTP username>
-//    EMAIL_PASS = <SES SMTP password>
-//    EMAIL_FROM = verified@domain.com
-//
-// 3. Resend REST API (last fallback):
-//    RESEND_API_KEY = re_xxxxxxx
+﻿// Email sending  tries providers in this order:
+//  1. Resend REST API   (set RESEND_API_KEY; EMAIL_FROM must be a Resend-verified domain)
+//  2. AWS SES SDK       (set AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY)
+//  3. SES SMTP fallback (set EMAIL_USER + EMAIL_PASS)
 
 const nodemailer = require('nodemailer');
 const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 
 let _sesClient = null;
-let _transporter = null;
+let _smtpTransporter = null;
 
 function getSESClient() {
   if (_sesClient) return _sesClient;
@@ -36,172 +22,93 @@ function getSESClient() {
 }
 
 function getSMTPTransporter() {
-  if (_transporter) return _transporter;
-  const host = process.env.EMAIL_HOST || 'email-smtp.us-east-1.amazonaws.com';
-  const port = parseInt(process.env.EMAIL_PORT || '587', 10);
-  const secure = port === 465;
-  _transporter = nodemailer.createTransport({
-    host, port, secure,
+  if (_smtpTransporter) return _smtpTransporter;
+  _smtpTransporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'email-smtp.us-east-1.amazonaws.com',
+    port: parseInt(process.env.EMAIL_PORT || '587', 10),
+    secure: parseInt(process.env.EMAIL_PORT || '587', 10) === 465,
     auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
   });
-  return _transporter;
+  return _smtpTransporter;
 }
 
 /**
- * Send email — tries AWS SES SDK → SMTP → Resend in order
- * @param {string} to - Recipient email
- * @param {string} subject - Email subject
- * @param {string} html - Email HTML content
+ * Send an email. Returns { ok, provider, id?, error? }
  */
 async function sendEmail(to, subject, html) {
   const fromEmail = process.env.EMAIL_FROM || 'mypcjnaab@gmail.com';
-  // ── Provider 1: Resend REST API (preferred if key present) ──────────────────
+
+  // 1. Resend
   if (process.env.RESEND_API_KEY) {
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: fromEmail, to, subject, html }),
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ from: `Apna Shahkot <${fromEmail}>`, to, subject, html }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        console.error('[Resend] API error:', data);
-        return { ok: false, error: data.message || JSON.stringify(data) };
+      if (res.ok) {
+        console.log(`[Resend] Sent to ${to} | id: ${data.id}`);
+        return { ok: true, provider: 'Resend', id: data.id };
       }
-      console.log(`[Resend] Email sent to ${to}: ${subject} (id: ${data.id})`);
-      return { ok: true, id: data.id };
+      console.warn(`[Resend] Failed (${res.status}): ${data.message || JSON.stringify(data)}  falling through`);
     } catch (err) {
-      console.error('[Resend] Fetch error:', err.message);
-      // fallthrough to next provider
+      console.warn(`[Resend] Fetch error: ${err.message}  falling through`);
     }
   }
 
-  // ── Provider 2: AWS SES SDK ────────────────────────────────────────────────
+  // 2. AWS SES SDK
   if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
     try {
-      const client = getSESClient();
-      const command = new SendEmailCommand({
+      const result = await getSESClient().send(new SendEmailCommand({
         Source: fromEmail,
         Destination: { ToAddresses: [to] },
         Message: {
           Subject: { Data: subject, Charset: 'UTF-8' },
           Body: { Html: { Data: html, Charset: 'UTF-8' } },
         },
-      });
-      const result = await client.send(command);
-      console.log(`[SES SDK] Email sent to ${to}: ${subject} (msgId: ${result.MessageId})`);
-      return { ok: true, id: result.MessageId };
+      }));
+      console.log(`[SES SDK] Sent to ${to} | msgId: ${result.MessageId}`);
+      return { ok: true, provider: 'AWS SES SDK', id: result.MessageId };
     } catch (err) {
-      console.error('[SES SDK] Error:', err.message);
-      return { ok: false, error: err.message };
+      console.warn(`[SES SDK] Error: ${err.message}  falling through`);
+      _sesClient = null;
     }
   }
 
-  // ── Provider 2: SES SMTP ───────────────────────────────────────────────────
+  // 3. SES SMTP
   if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     try {
-      const transporter = getSMTPTransporter();
-      const info = await transporter.sendMail({
+      const info = await getSMTPTransporter().sendMail({
         from: `"Apna Shahkot" <${fromEmail}>`,
-        to, subject, html,
         envelope: { from: fromEmail, to },
+        to, subject, html,
       });
-      console.log(`[SMTP] Email sent to ${to}: ${subject} (msgId: ${info.messageId})`);
-      return { ok: true };
+      console.log(`[SMTP] Sent to ${to} | msgId: ${info.messageId}`);
+      return { ok: true, provider: 'SES SMTP' };
     } catch (err) {
-      console.error('[SMTP] Error:', err.message);
-      _transporter = null;
-      return { ok: false, error: err.message };
+      console.error(`[SMTP] Error: ${err.message}`);
+      _smtpTransporter = null;
+      return { ok: false, provider: 'SES SMTP', error: err.message };
     }
   }
 
-  // ── Provider 3: Resend REST API ────────────────────────────────────────────
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: fromEmail, to, subject, html }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        console.error('[Resend] API error:', data);
-        return { ok: false, error: data.message || JSON.stringify(data) };
-      }
-      console.log(`[Resend] Email sent to ${to}: ${subject} (id: ${data.id})`);
-      return { ok: true, id: data.id };
-    } catch (err) {
-      console.error('[Resend] Fetch error:', err.message);
-      return { ok: false, error: err.message };
-    }
-  }
-
-  console.error('No email provider configured. Set AWS_ACCESS_KEY_ID or EMAIL_USER/EMAIL_PASS or RESEND_API_KEY.');
-  return { ok: false, error: 'No email provider configured.' };
+  return { ok: false, provider: 'None', error: 'No email provider configured.' };
 }
 
-/**
- * Send Rishta approval email
- */
 async function sendRishtaApprovalEmail(email, name) {
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
-        <h1 style="color: white; margin: 0; text-align: center;">Apna Shahkot</h1>
-        <p style="color: #e8e8e8; text-align: center; margin-top: 10px;">Rishta Service</p>
-      </div>
-      <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-        <h2 style="color: #333;">Congratulations, ${name}! 🎉</h2>
-        <p style="color: #555; line-height: 1.6;">
-          Your Rishta profile has been <strong style="color: #27ae60;">APPROVED</strong> by our admin team.
-        </p>
-        <p style="color: #555; line-height: 1.6;">
-          You can now browse and connect with other verified profiles on the Apna Shahkot Rishta section.
-        </p>
-        <div style="background: #fff; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
-          <p style="color: #555; margin: 0;"><strong>Remember:</strong> All profiles are verified. Any misuse or illegal activity will result in strict action.</p>
-        </div>
-        <p style="color: #999; font-size: 12px; margin-top: 30px;">
-          This is an automated email from Apna Shahkot. Do not reply to this email.
-        </p>
-      </div>
-    </div>
-  `;
-
-  return sendEmail(email, '✅ Your Rishta Profile is Approved - Apna Shahkot', html).then(r => r.ok);
+  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;"><div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:30px;border-radius:10px 10px 0 0;"><h1 style="color:#fff;margin:0;text-align:center;">Apna Shahkot</h1></div><div style="background:#f9f9f9;padding:30px;border-radius:0 0 10px 10px;"><h2>Congratulations, ${name}! Your Rishta profile has been APPROVED.</h2></div></div>`;
+  const result = await sendEmail(email, 'Your Rishta Profile is Approved - Apna Shahkot', html);
+  return result.ok;
 }
 
-/**
- * Send Rishta rejection email
- */
 async function sendRishtaRejectionEmail(email, name, reason) {
-  const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0;">
-        <h1 style="color: white; margin: 0; text-align: center;">Apna Shahkot</h1>
-        <p style="color: #e8e8e8; text-align: center; margin-top: 10px;">Rishta Service</p>
-      </div>
-      <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-        <h2 style="color: #333;">Hello, ${name}</h2>
-        <p style="color: #555; line-height: 1.6;">
-          Unfortunately, your Rishta profile has been <strong style="color: #e74c3c;">not approved</strong> at this time.
-        </p>
-        ${reason ? `<p style="color: #555; line-height: 1.6;"><strong>Reason:</strong> ${reason}</p>` : ''}
-        <p style="color: #555; line-height: 1.6;">
-          Please review and resubmit your profile with correct information.
-        </p>
-        <p style="color: #999; font-size: 12px; margin-top: 30px;">
-          This is an automated email from Shahkot App. Do not reply to this email.
-        </p>
-      </div>
-    </div>
-  `;
-
-  return sendEmail(email, '❌ Rishta Profile Update - Apna Shahkot', html).then(r => r.ok);
+  const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;"><div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:30px;border-radius:10px 10px 0 0;"><h1 style="color:#fff;margin:0;text-align:center;">Apna Shahkot</h1></div><div style="background:#f9f9f9;padding:30px;border-radius:0 0 10px 10px;"><h2>Hello ${name}, your profile was not approved.</h2>${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}</div></div>`;
+  const result = await sendEmail(email, 'Rishta Profile Update - Apna Shahkot', html);
+  return result.ok;
 }
 
-module.exports = {
-  sendEmail,
-  sendRishtaApprovalEmail,
-  sendRishtaRejectionEmail,
-};
+module.exports = { sendEmail, sendRishtaApprovalEmail, sendRishtaRejectionEmail };
