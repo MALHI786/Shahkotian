@@ -1,65 +1,112 @@
-// Email sending — supports two providers (checked in order):
+// Email sending — supports three providers (checked in this order):
 //
-// 1. Resend (recommended — easiest, 3,000 free emails/month):
-//    Sign up at resend.com → API Keys → Create key
+// 1. AWS SES SDK (primary — 62,000 free emails/month):
 //    Set on DigitalOcean:
-//      RESEND_API_KEY = re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-//      EMAIL_FROM     = Apna Shahkot <noreply@yourdomain.com>
-//                       (use onboarding@resend.dev for testing before domain verified)
+//      AWS_ACCESS_KEY_ID     = your IAM access key  (AKIA...)
+//      AWS_SECRET_ACCESS_KEY = your IAM secret key
+//      AWS_REGION            = us-east-1
+//      EMAIL_FROM            = mypcjnaab@gmail.com  (must be verified in SES)
 //
-// 2. SMTP fallback (Amazon SES, Gmail, etc.):
+// 2. SES SMTP fallback:
 //    EMAIL_HOST = email-smtp.us-east-1.amazonaws.com
 //    EMAIL_PORT = 587
 //    EMAIL_USER = <SES SMTP username>
 //    EMAIL_PASS = <SES SMTP password>
-//    EMAIL_FROM = verified@yourdomain.com
+//    EMAIL_FROM = verified@domain.com
+//
+// 3. Resend REST API (last fallback):
+//    RESEND_API_KEY = re_xxxxxxx
 
 const nodemailer = require('nodemailer');
+const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 
+let _sesClient = null;
 let _transporter = null;
 
-function getTransporter() {
+function getSESClient() {
+  if (_sesClient) return _sesClient;
+  _sesClient = new SESClient({
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+  });
+  return _sesClient;
+}
+
+function getSMTPTransporter() {
   if (_transporter) return _transporter;
-  const host = process.env.EMAIL_HOST || 'smtp.gmail.com';
-  const port = parseInt(process.env.EMAIL_PORT || '465', 10);
+  const host = process.env.EMAIL_HOST || 'email-smtp.us-east-1.amazonaws.com';
+  const port = parseInt(process.env.EMAIL_PORT || '587', 10);
   const secure = port === 465;
   _transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
+    host, port, secure,
+    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
   });
   return _transporter;
 }
 
 /**
- * Send email via Resend API (primary) or SMTP (fallback)
+ * Send email — tries AWS SES SDK → SMTP → Resend in order
  * @param {string} to - Recipient email
  * @param {string} subject - Email subject
  * @param {string} html - Email HTML content
  */
 async function sendEmail(to, subject, html) {
-  const resendKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.EMAIL_FROM || '"Apna Shahkot" <onboarding@resend.dev>';
+  const fromEmail = process.env.EMAIL_FROM || 'mypcjnaab@gmail.com';
 
-  // ── Provider 1: Resend REST API ──────────────────────────────────────────
-  if (resendKey) {
+  // ── Provider 1: AWS SES SDK ────────────────────────────────────────────────
+  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
+    try {
+      const client = getSESClient();
+      const command = new SendEmailCommand({
+        Source: fromEmail,
+        Destination: { ToAddresses: [to] },
+        Message: {
+          Subject: { Data: subject, Charset: 'UTF-8' },
+          Body: { Html: { Data: html, Charset: 'UTF-8' } },
+        },
+      });
+      const result = await client.send(command);
+      console.log(`[SES SDK] Email sent to ${to}: ${subject} (msgId: ${result.MessageId})`);
+      return { ok: true, id: result.MessageId };
+    } catch (err) {
+      console.error('[SES SDK] Error:', err.message);
+      return { ok: false, error: err.message };
+    }
+  }
+
+  // ── Provider 2: SES SMTP ───────────────────────────────────────────────────
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    try {
+      const transporter = getSMTPTransporter();
+      const info = await transporter.sendMail({
+        from: `"Apna Shahkot" <${fromEmail}>`,
+        to, subject, html,
+        envelope: { from: fromEmail, to },
+      });
+      console.log(`[SMTP] Email sent to ${to}: ${subject} (msgId: ${info.messageId})`);
+      return { ok: true };
+    } catch (err) {
+      console.error('[SMTP] Error:', err.message);
+      _transporter = null;
+      return { ok: false, error: err.message };
+    }
+  }
+
+  // ── Provider 3: Resend REST API ────────────────────────────────────────────
+  if (process.env.RESEND_API_KEY) {
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ from: fromEmail, to, subject, html }),
       });
       const data = await res.json();
       if (!res.ok) {
-        console.error('Resend API error:', data);
-        return { ok: false, error: data.message || data.name || JSON.stringify(data) };
+        console.error('[Resend] API error:', data);
+        return { ok: false, error: data.message || JSON.stringify(data) };
       }
       console.log(`[Resend] Email sent to ${to}: ${subject} (id: ${data.id})`);
       return { ok: true, id: data.id };
@@ -69,32 +116,8 @@ async function sendEmail(to, subject, html) {
     }
   }
 
-  // ── Provider 2: SMTP fallback ─────────────────────────────────────────────
-  const user = process.env.EMAIL_USER;
-  const pass = process.env.EMAIL_PASS;
-  if (!user || !pass) {
-    console.error('No email provider configured. Set RESEND_API_KEY (recommended) or EMAIL_USER + EMAIL_PASS for SMTP.');
-    return { ok: false, error: 'No email provider configured. Set RESEND_API_KEY or EMAIL_USER + EMAIL_PASS.' };
-  }
-
-  try {
-    const transporter = getTransporter();
-    const from = fromEmail || `"Apna Shahkot" <${user}>`;
-    const envelopeFrom = user; // SMTP envelope must match verified sender
-    const info = await transporter.sendMail({
-      from,
-      to,
-      subject,
-      html,
-      envelope: { from: envelopeFrom, to },
-    });
-    console.log(`[SMTP] Email sent to ${to}: ${subject} (messageId: ${info.messageId})`);
-    return { ok: true };
-  } catch (error) {
-    console.error('[SMTP] Email send error:', error.message);
-    _transporter = null;
-    return { ok: false, error: error.message };
-  }
+  console.error('No email provider configured. Set AWS_ACCESS_KEY_ID or EMAIL_USER/EMAIL_PASS or RESEND_API_KEY.');
+  return { ok: false, error: 'No email provider configured.' };
 }
 
 /**
