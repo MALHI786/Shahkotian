@@ -122,7 +122,7 @@ class CloudinaryManager {
     setTimeout(() => this.autoSwitch().catch(console.error), 20000);
     // Then check every CHECK_INTERVAL_MS (default: 2 hours)
     this.checkTimer = setInterval(() => this.autoSwitch().catch(console.error), CHECK_INTERVAL_MS);
-    console.log(`⏱️ [CLOUDINARY] Monitor started — checking every ${Math.round(CHECK_INTERVAL_MS / 3600000)}h, rotate at: ${CLOUDINARY_SIZE_LIMIT_GB}GB`);
+    console.log(`⏱️ [CLOUDINARY] Monitor started — checking every ${Math.round(CHECK_INTERVAL_MS / 3600000)}h, rotate at: ${CLOUDINARY_CREDITS_LIMIT} credits`);
   }
 
   initialize() {
