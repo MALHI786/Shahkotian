@@ -55,8 +55,28 @@ function getSMTPTransporter() {
  */
 async function sendEmail(to, subject, html) {
   const fromEmail = process.env.EMAIL_FROM || 'mypcjnaab@gmail.com';
+  // ── Provider 1: Resend REST API (preferred if key present) ──────────────────
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: fromEmail, to, subject, html }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error('[Resend] API error:', data);
+        return { ok: false, error: data.message || JSON.stringify(data) };
+      }
+      console.log(`[Resend] Email sent to ${to}: ${subject} (id: ${data.id})`);
+      return { ok: true, id: data.id };
+    } catch (err) {
+      console.error('[Resend] Fetch error:', err.message);
+      // fallthrough to next provider
+    }
+  }
 
-  // ── Provider 1: AWS SES SDK ────────────────────────────────────────────────
+  // ── Provider 2: AWS SES SDK ────────────────────────────────────────────────
   if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
     try {
       const client = getSESClient();
