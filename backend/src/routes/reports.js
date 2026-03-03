@@ -54,8 +54,25 @@ router.get('/', authenticate, adminOnly, async (req, res) => {
         // For each report, fetch last 5 context messages based on targetType
         const enriched = await Promise.all(reports.map(async (report) => {
             let contextMessages = [];
+            let reportedPost = null;
             try {
-                if (report.targetType === 'CHAT_MESSAGE') {
+                if (report.targetType === 'POST') {
+                    // Fetch the reported post with user info, images, videos
+                    const post = await prisma.post.findUnique({
+                        where: { id: report.targetId },
+                        include: { user: { select: { id: true, name: true, photoUrl: true } } },
+                    });
+                    if (post) {
+                        reportedPost = {
+                            id: post.id,
+                            text: post.text,
+                            images: post.images || [],
+                            videos: post.videos || [],
+                            user: post.user,
+                            createdAt: post.createdAt,
+                        };
+                    }
+                } else if (report.targetType === 'CHAT_MESSAGE') {
                     // Open chat: fetch 5 messages around the reported one
                     const targetMsg = await prisma.chatMessage.findUnique({ where: { id: report.targetId } });
                     if (targetMsg) {
@@ -85,7 +102,7 @@ router.get('/', authenticate, adminOnly, async (req, res) => {
             } catch (ctxErr) {
                 console.error('Context messages error:', ctxErr.message);
             }
-            return { ...report, contextMessages };
+            return { ...report, contextMessages, reportedPost };
         }));
 
         res.json({

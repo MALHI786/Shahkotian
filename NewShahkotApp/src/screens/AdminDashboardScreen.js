@@ -541,10 +541,16 @@ export default function AdminDashboardScreen({ navigation }) {
     />
   );
 
-  const handleReportAction = async (id, action) => {
+  const handleReportAction = async (id, action, postId) => {
     try {
-      await reportsAPI.takeAction(id, action);
-      Alert.alert('Done', action === 'BLOCK' ? 'User blocked' : 'Report dismissed');
+      if (action === 'DELETE_POST' && postId) {
+        await adminAPI.deletePost(postId);
+        await reportsAPI.takeAction(id, 'DISMISS');
+        Alert.alert('Done', 'Post deleted and report resolved.');
+      } else {
+        await reportsAPI.takeAction(id, action);
+        Alert.alert('Done', action === 'BLOCK' ? 'User blocked & report resolved' : 'Report dismissed');
+      }
       setReports(prev => prev.filter(r => r.id !== id));
     } catch { Alert.alert('Error', 'Action failed'); }
   };
@@ -573,13 +579,37 @@ export default function AdminDashboardScreen({ navigation }) {
             <Text style={styles.contentTitle}>Report #{item.id.slice(-6)}</Text>
             <Text style={styles.contentSub}>By: {item.reporter?.name || 'Unknown'}</Text>
             <Text style={styles.contentSub}>Type: {item.targetType} • Target: {item.targetId?.slice(-6)}</Text>
-            <Text style={[styles.contentSub, { marginTop: 4 }]}>Reason: {item.reason}</Text>
+            <Text style={[styles.contentSub, { marginTop: 4, fontWeight: '600', color: '#C62828' }]}>Reason: {item.reason}</Text>
             {item.description ? <Text style={styles.contentSub}>Details: {item.description}</Text> : null}
             <Text style={styles.contentSub}>
               {new Date(item.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
             </Text>
 
-            {/* Context: Last 5 messages */}
+            {/* Reported Post content */}
+            {item.targetType === 'POST' && item.reportedPost && (
+              <View style={{ marginTop: 10, backgroundColor: '#FEF2F2', borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B91C1C', marginBottom: 6 }}>
+                  📝 Reported Post by {item.reportedPost.user?.name || 'Unknown'}:
+                </Text>
+                {item.reportedPost.text ? (
+                  <Text style={{ fontSize: 13, color: '#333', marginBottom: 6 }} numberOfLines={6}>
+                    {item.reportedPost.text}
+                  </Text>
+                ) : null}
+                {item.reportedPost.images?.length > 0 && (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {item.reportedPost.images.map((img, idx) => (
+                      <Image key={idx} source={{ uri: img }} style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#ddd' }} />
+                    ))}
+                  </View>
+                )}
+                {item.reportedPost.videos?.length > 0 && (
+                  <Text style={{ fontSize: 12, color: '#666', marginTop: 4 }}>🎥 {item.reportedPost.videos.length} video(s) attached</Text>
+                )}
+              </View>
+            )}
+
+            {/* Context: Last 5 messages (for chat/dm reports) */}
             {item.contextMessages && item.contextMessages.length > 0 && (
               <View style={{ marginTop: 10, backgroundColor: '#f0f0f0', borderRadius: 8, padding: 10 }}>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.primary, marginBottom: 6 }}>
@@ -608,8 +638,13 @@ export default function AdminDashboardScreen({ navigation }) {
           {reportFilter === 'PENDING' && (
             <View style={{ justifyContent: 'center', gap: 6 }}>
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#dc3545' }]} onPress={() => handleReportAction(item.id, 'BLOCK')}>
-                <Text style={styles.actionBtnText}>Block</Text>
+                <Text style={styles.actionBtnText}>Block User</Text>
               </TouchableOpacity>
+              {item.targetType === 'POST' && item.reportedPost && (
+                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#E65100' }]} onPress={() => handleReportAction(item.id, 'DELETE_POST', item.targetId)}>
+                  <Text style={styles.actionBtnText}>Delete Post</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#6c757d' }]} onPress={() => handleReportAction(item.id, 'DISMISS')}>
                 <Text style={styles.actionBtnText}>Dismiss</Text>
               </TouchableOpacity>
