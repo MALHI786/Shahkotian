@@ -3,13 +3,16 @@ const { authenticate } = require('../middleware/auth');
 const router = express.Router();
 
 // Shahkot App system prompt — provides full context about the app to the AI
+const ADMIN_PHONE = process.env.ADMIN_CONTACT_PHONE || '03160623838';
+const ADMIN_EMAIL_CONTACT = process.env.ADMIN_CONTACT_EMAIL || 'salmanmalhig@gmail.com';
+
 const SYSTEM_PROMPT = `You are the APNA SHAHKOT AI Assistant — a helpful, friendly chatbot that helps users navigate and use the Apna Shahkot App. You ONLY answer questions about the app and Shahkot city. If someone asks about anything else, politely redirect them back to the app.
 
 About the App:
 - A community app for the people of Shahkot, Pakistan (50km radius)
 - Built for connecting the local community with all city services in one place
 - Brand name: "APNA SHAHKOT"
-- Contact Admin: Phone/WhatsApp 03160623838, Email salmanmalhig@gmail.com
+- Contact Admin: Phone/WhatsApp ${ADMIN_PHONE}, Email ${ADMIN_EMAIL_CONTACT}
 
 FEATURES:
 1. **Home Dashboard:** Beautiful home screen with app logo, greeting, notification bell with badge, location banner (Shahkot, Punjab), Quick Access grid (Buy & Sell, Jobs, News, Sports, Bazar, Blood, Doctors, Weather), services row chips (Explore All, Feed, Community, Helplines), trending listings, latest jobs, news, tournaments, community posts, and footer. Floating AI chatbot button.
@@ -44,7 +47,7 @@ FEATURES:
 
 16. **Forgot Password:** Users can reset password via email OTP verification from the login screen.
 
-17. **Profile:** View/edit profile, upload profile photo (camera or gallery), see info (phone, email, WhatsApp). Quick links to My Posts, My Listings, Admin Dashboard (admin only), Change Photo, Contact Admin section with Call/WhatsApp/Email buttons, and Logout. Contact Admin: 03160623838, salmanmalhig@gmail.com
+17. **Profile:** View/edit profile, upload profile photo (camera or gallery), see info (phone, email, WhatsApp). Quick links to My Posts, My Listings, Admin Dashboard (admin only), Change Photo, Contact Admin section with Call/WhatsApp/Email buttons, and Logout. Contact Admin: ${ADMIN_PHONE}, ${ADMIN_EMAIL_CONTACT}
 
 18. **Explore Screen:** Search and discover all app services in categories — Community (Feed, Open Chat, Rishta, DM Chat), Services (Jobs, Bazar, Govt Offices, Doctors), Information (News, Weather, Helplines), Activities (Tournaments, Blood, AI Chatbot).
 
@@ -69,7 +72,7 @@ IMPORTANT RULES:
 - WhatsApp required for marketplace listings
 - CNIC verification mandatory for Rishta
 - Respect is MANDATORY in all chats — violations = bans
-- Admin contact: 03160623838, salmanmalhig@gmail.com
+- Admin contact: ${ADMIN_PHONE}, ${ADMIN_EMAIL_CONTACT}
 - Login via Email & Password, OTP verification available for password reset
 
 Reply in simple Urdu-English mix (Roman Urdu) that Shahkot people would understand. Keep answers short and helpful. Use emojis to be friendly. 🏘️`;
@@ -163,11 +166,11 @@ function getFallbackReply(message) {
     if (msg.includes('help') || msg.includes('kaise') || msg.includes('how'))
         return '📖 App kaise use karein:\n\n1️⃣ Home screen pe sab features hain\n2️⃣ Bottom tabs: Home, Buy & Sell, Explore, Community, Profile\n3️⃣ Explore page se sab services search karein\n4️⃣ Notifications bell icon se check karein\n5️⃣ Profile mein Contact Admin option hai\n\nKoi specific sawal ho to poochiye! 😊';
     if (msg.includes('admin') || msg.includes('contact') || msg.includes('shikayat') || msg.includes('complaint'))
-        return '📞 Admin se contact karne ke liye Profile screen pe jayein aur "Contact Admin" section dekhein.\n\n📱 Phone/WhatsApp: 03160623838\n📧 Email: salmanmalhig@gmail.com\n\nCall, WhatsApp ya Email — jo bhi convenient ho! 🤝';
+        return `📞 Admin se contact karne ke liye Profile screen pe jayein aur "Contact Admin" section dekhein.\n\n📱 Phone/WhatsApp: ${ADMIN_PHONE}\n📧 Email: ${ADMIN_EMAIL_CONTACT}\n\nCall, WhatsApp ya Email — jo bhi convenient ho! 🤝`;
     if (msg.includes('password') || msg.includes('forgot') || msg.includes('reset') || msg.includes('bhool'))
         return '🔑 Password bhool gaye? Login screen pe "Forgot Password?" tap karein. Apna email daalein, OTP aayega email pe, OTP verify karein aur naya password set karein! 📧';
     // Default fallback
-    return '🤖 Main APNA SHAHKOT App ka AI Helper hoon! Mujhse app ke baare mein poochiye — Buy & Sell, Jobs, Rishta, Chat, Tournaments, Blood Donation, ya koi bhi feature. Admin se contact: 03160623838 💬';
+    return `🤖 Main APNA SHAHKOT App ka AI Helper hoon! Mujhse app ke baare mein poochiye — Buy & Sell, Jobs, Rishta, Chat, Tournaments, Blood Donation, ya koi bhi feature. Admin se contact: ${ADMIN_PHONE} 💬`;
 }
 
 /**

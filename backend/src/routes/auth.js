@@ -144,13 +144,13 @@ router.post('/register', geofenceCheck, async (req, res) => {
     await prisma.emailOtp.update({ where: { id: otpRecord.id }, data: { used: true } });
 
     // Determine role
-    const adminEmail = process.env.ADMIN_EMAIL || 'mypcjnaab@gmail.com';
-    const adminPhone = process.env.ADMIN_PHONE || '+923425844921';
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPhone = process.env.ADMIN_PHONE;
     const userCount = await prisma.user.count();
     const isAdmin =
       userCount === 0 ||
-      email.toLowerCase() === adminEmail.toLowerCase() ||
-      (phone && phone === adminPhone);
+      (adminEmail && email.toLowerCase() === adminEmail.toLowerCase()) ||
+      (adminPhone && phone && phone === adminPhone);
 
     // Create user
     const user = await prisma.user.create({
@@ -222,9 +222,9 @@ router.post('/login', geofenceCheck, async (req, res) => {
     }
 
     // Auto-promote to admin if email matches admin credentials
-    const adminEmail = process.env.ADMIN_EMAIL || 'mypcjnaab@gmail.com';
+    const adminEmail = process.env.ADMIN_EMAIL;
     let userRole = user.role;
-    if (user.role !== 'ADMIN' && email.toLowerCase() === adminEmail.toLowerCase()) {
+    if (adminEmail && user.role !== 'ADMIN' && email.toLowerCase() === adminEmail.toLowerCase()) {
       await prisma.user.update({ where: { id: user.id }, data: { role: 'ADMIN' } });
       userRole = 'ADMIN';
     }

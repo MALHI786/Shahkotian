@@ -36,7 +36,7 @@ function getSMTPTransporter() {
  * Send an email. Returns { ok, provider, id?, error? }
  */
 async function sendEmail(to, subject, html) {
-  const fromEmail = process.env.EMAIL_FROM || 'mypcjnaab@gmail.com';
+  const fromEmail = process.env.EMAIL_FROM || 'noreply@apnashahkot.com';
 
   // 1. Resend
   if (process.env.RESEND_API_KEY) {
