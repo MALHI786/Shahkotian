@@ -338,7 +338,7 @@ router.post('/login', geofenceCheck, async (req, res) => {
  * POST /api/auth/forgot-password
  * Send OTP to an existing user's email for password reset
  */
-router.post('/forgot-password', geofenceCheck, async (req, res) => {
+router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -395,7 +395,7 @@ router.post('/forgot-password', geofenceCheck, async (req, res) => {
  * POST /api/auth/reset-password
  * Verify OTP and set new password
  */
-router.post('/reset-password', geofenceCheck, async (req, res) => {
+router.post('/reset-password', async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
 

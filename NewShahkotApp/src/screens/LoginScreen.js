@@ -183,17 +183,10 @@ export default function LoginScreen({ navigation }) {
     if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       return Alert.alert('Invalid Email', 'Please enter your registered email.');
     }
-    if (!locationAllowed) {
-      return Alert.alert('Location Required', 'Please enable location services to continue.', [
-        { text: 'Retry', onPress: checkLocation },
-      ]);
-    }
     setOtpSending(true);
     try {
       await authAPI.forgotPassword({
         email: email.trim(),
-        latitude: userCoords?.latitude,
-        longitude: userCoords?.longitude,
       });
       setMode('RESET_OTP');
       Alert.alert('OTP Sent ✅', `A code has been sent to ${email.trim()}`);
@@ -214,8 +207,6 @@ export default function LoginScreen({ navigation }) {
         email: email.trim(),
         otp: otp.trim(),
         newPassword,
-        latitude: userCoords?.latitude,
-        longitude: userCoords?.longitude,
       });
       Alert.alert('Success ✅', 'Password reset! You can now login with your new password.');
       setOtp(''); setNewPassword('');
