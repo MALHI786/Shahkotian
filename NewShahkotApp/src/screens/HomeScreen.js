@@ -102,6 +102,7 @@ export default function HomeScreen({ navigation }) {
     { key: 'Tournaments', label: 'Sports', icon: 'trophy', color: '#10B981' },
     { key: 'Bazar', label: 'Bazar', icon: 'storefront', color: '#3B82F6' },
     { key: 'RestaurantDeals', label: 'Food Deals', icon: 'restaurant', color: '#F97316' },
+    { key: 'ClothBrands', label: 'Brands', icon: 'shirt', color: '#8B5CF6' },
     { key: 'BloodDonation', label: 'Blood', icon: 'water', color: '#B91C1C' },
     { key: 'Doctors', label: 'Doctors', icon: 'medkit', color: '#E11D48' },
     { key: 'Weather', label: 'Weather', icon: 'partly-sunny', color: '#0EA5E9' },

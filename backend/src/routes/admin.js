@@ -29,6 +29,8 @@ router.get('/dashboard', async (req, res) => {
       totalShops,
       totalOffices,
       totalDoctors,
+      totalRestaurants,
+      totalClothBrands,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.listing.count(),
@@ -38,6 +40,8 @@ router.get('/dashboard', async (req, res) => {
       prisma.shop.count(),
       prisma.govtOffice.count(),
       prisma.doctor.count(),
+      prisma.restaurant.count(),
+      prisma.clothBrand.count(),
     ]);
 
     res.json({
@@ -50,6 +54,8 @@ router.get('/dashboard', async (req, res) => {
         totalShops,
         totalOffices,
         totalDoctors,
+        totalRestaurants,
+        totalClothBrands,
       },
     });
   } catch (error) {

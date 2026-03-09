@@ -579,3 +579,45 @@ model Deal {
   @@index([restaurantId])
   @@index([isActive, createdAt(sort: Desc)])
 }
+
+// ============ CLOTH BRANDS & DEALS ============
+
+model ClothBrand {
+  id          String   @id @default(uuid())
+  name        String
+  address     String
+  phone       String?
+  whatsapp    String?
+  description String?
+  image       String?  // Logo / cover image
+  email       String   @unique // Login email for brand owner
+  password    String   // Hashed password for brand owner
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  deals BrandDeal[]
+
+  @@index([name])
+  @@index([isActive])
+}
+
+model BrandDeal {
+  id           String   @id @default(uuid())
+  brandId      String
+  title        String
+  description  String?
+  price        String?
+  originalPrice String?
+  images       String[]
+  videos       String[]
+  isActive     Boolean  @default(true)
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  brand ClothBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([isActive, createdAt(sort: Desc)])
+}

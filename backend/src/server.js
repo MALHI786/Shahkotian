@@ -27,6 +27,7 @@ const jobRoutes = require('./routes/jobs');
 const reportRoutes = require('./routes/reports');
 const doctorRoutes = require('./routes/doctors');
 const restaurantRoutes = require('./routes/restaurants');
+const clothBrandRoutes = require('./routes/clothBrands');
 
 const app = express();
 
@@ -99,6 +100,23 @@ app.post('/api/cloudinary-switch', authenticate, adminOnly, async (req, res) => 
   }
 });
 
+// Database manual switch endpoint (admin only)
+app.post('/api/db-switch', authenticate, adminOnly, async (req, res) => {
+  try {
+    const { index } = req.body;
+    if (typeof index !== 'number' && typeof index !== 'string') {
+      return res.status(400).json({ error: 'index is required (0-based database number)' });
+    }
+    const dbManager = prisma.__dbManager;
+    if (!dbManager) return res.status(500).json({ error: 'Database manager not available' });
+    await dbManager.switchDatabase(parseInt(index, 10));
+    const statuses = await dbManager.getAllStatus();
+    res.json({ success: true, message: `Switched to DB #${index}`, activeDatabase: dbManager.activeIndex, databases: statuses });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingRoutes);
@@ -117,6 +135,7 @@ app.use('/api/doctors', doctorRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/cloth-brands', clothBrandRoutes);
 
 // 404 handler
 app.use((req, res) => {

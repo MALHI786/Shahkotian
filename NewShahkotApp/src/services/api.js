@@ -210,6 +210,7 @@ export const adminAPI = {
   getDbStatus: () => api.get('/db-status'),
   getCloudinaryStatus: () => api.get('/cloudinary-status'),
   switchCloudinary: (index) => api.post('/cloudinary-switch', { index }),
+  switchDatabase: (index) => api.post('/db-switch', { index }),
   // Cleanup old records
   cleanup: (target, olderThanDays = 30) => api.post('/admin/cleanup', { target, olderThanDays }),
   // Push notifications
@@ -275,6 +276,33 @@ export const restaurantsAPI = {
     headers: { Authorization: `Bearer ${token}` },
   }),
   ownerDeleteDeal: (token, dealId) => api.delete(`/restaurants/owner/deals/${dealId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  }),
+};
+
+// ============ CLOTH BRANDS & DEALS API ============
+export const clothBrandsAPI = {
+  getAll: (params) => api.get('/cloth-brands', { params }),
+  getOne: (id) => api.get(`/cloth-brands/${id}`),
+  getAllDeals: () => api.get('/cloth-brands/deals/all'),
+  // Admin
+  adminCreate: (formData) => api.post('/cloth-brands/admin/create', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  adminUpdate: (id, data) => api.put(`/cloth-brands/admin/${id}`, data),
+  adminDelete: (id) => api.delete(`/cloth-brands/admin/${id}`),
+  // Brand owner auth
+  ownerLogin: (data) => api.post('/cloth-brands/auth/login', data),
+  ownerProfile: (token) => api.get('/cloth-brands/owner/profile', {
+    headers: { Authorization: `Bearer ${token}` },
+  }),
+  ownerCreateDeal: (token, formData) => api.post('/cloth-brands/owner/deals', formData, {
+    headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${token}`, timeout: 300000 },
+  }),
+  ownerUpdateDeal: (token, dealId, data) => api.put(`/cloth-brands/owner/deals/${dealId}`, data, {
+    headers: { Authorization: `Bearer ${token}` },
+  }),
+  ownerDeleteDeal: (token, dealId) => api.delete(`/cloth-brands/owner/deals/${dealId}`, {
     headers: { Authorization: `Bearer ${token}` },
   }),
 };

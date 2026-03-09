@@ -37,7 +37,7 @@ const APP_OPEN_ID = Platform.select({
 });
 
 // ── Frequency caps ──────────────────────────────────────────────────────────
-const MIN_INTERSTITIAL_GAP_MS = 60_000;  // max 1 interstitial per 60 s
+const MIN_INTERSTITIAL_GAP_MS = 120_000; // max 1 interstitial per 2 min
 const MIN_APP_OPEN_GAP_MS     = 180_000; // max 1 app-open ad per 3 min
 
 let lastInterstitialTime = 0;
@@ -81,14 +81,12 @@ function preloadInterstitial() {
 }
 
 /**
- * Call this on screen transitions.  Shows an interstitial every 3rd navigation
- * and no more frequently than once per 60 seconds.
+ * Call this on screen transitions.  Shows an interstitial once every 2 minutes.
  */
 export function onScreenView() {
   screenViewCount += 1;
-  if (screenViewCount % 3 !== 0) return;            // every 3rd screen
   const now = Date.now();
-  if (now - lastInterstitialTime < MIN_INTERSTITIAL_GAP_MS) return;
+  if (now - lastInterstitialTime < MIN_INTERSTITIAL_GAP_MS) return; // respect 2-min gap
 
   if (!interstitialRef) { preloadInterstitial(); return; }
 

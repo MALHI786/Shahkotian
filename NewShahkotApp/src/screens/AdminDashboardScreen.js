@@ -225,6 +225,8 @@ export default function AdminDashboardScreen({ navigation }) {
         <StatCard icon="storefront" label="Shops" value={stats?.stats?.totalShops ?? 0} color="#795548" />
         <StatCard icon="business" label="Offices" value={stats?.stats?.totalOffices ?? 0} color="#607D8B" />
         <StatCard icon="medkit" label="Doctors" value={stats?.stats?.totalDoctors ?? 0} color="#E11D48" />
+        <StatCard icon="restaurant" label="Restaurants" value={stats?.stats?.totalRestaurants ?? 0} color="#F97316" />
+        <StatCard icon="shirt" label="Cloth Brands" value={stats?.stats?.totalClothBrands ?? 0} color="#8B5CF6" />
       </View>
 
       {stats?.stats?.pendingRishta > 0 && (
@@ -412,12 +414,36 @@ export default function AdminDashboardScreen({ navigation }) {
     ]);
   };
 
+  const [dbSwitching, setDbSwitching] = useState(false);
+
+  const handleDbSwitch = async (index) => {
+    Alert.alert('Switch Database', `Switch writes to DB #${index + 1}? All databases will still be read.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Switch', onPress: async () => {
+          try {
+            setDbSwitching(true);
+            await adminAPI.switchDatabase(index);
+            const res = await adminAPI.getDbStatus();
+            setDbStatus(Array.isArray(res.data?.databases) ? res.data.databases : []);
+            Alert.alert('Done', `Writes switched to DB #${index + 1}`);
+          } catch (e) {
+            Alert.alert('Error', 'Failed to switch database.');
+          } finally {
+            setDbSwitching(false);
+          }
+        }
+      }
+    ]);
+  };
+
   const renderStorage = () => (
     <ScrollView style={styles.tabContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} />}>
       {/* DB Rotation Status */}
       <Text style={styles.sectionTitle}>Database Rotation</Text>
-      <Text style={{ fontSize: 12, color: COLORS.textLight, marginBottom: 10 }}>Auto-switches when a DB reaches 450 MB. Total capacity ~5 GB.</Text>
+      <Text style={{ fontSize: 12, color: COLORS.textLight, marginBottom: 10 }}>Auto-switches when a DB reaches 450 MB. Tap "Use" to switch manually. All DBs are read, only active DB receives writes.</Text>
       {dbStatus.length === 0 && <Text style={{ color: COLORS.textLight, marginBottom: 12 }}>Loading...</Text>}
+      {dbSwitching && <ActivityIndicator color={COLORS.primary} style={{ marginBottom: 8 }} />}
       {dbStatus.map(d => (
         <View key={d.index} style={[styles.dbRow, d.isActive && styles.dbRowActive]}>
           <View style={{ flex: 1 }}>
@@ -427,7 +453,17 @@ export default function AdminDashboardScreen({ navigation }) {
             </View>
             <Text style={styles.dbSizeText}>{d.sizeMB.toFixed(1)} MB / 512 MB</Text>
           </View>
-          <View style={[styles.dbDot, { backgroundColor: d.isAvailable ? '#4CAF50' : '#F44336' }]} />
+          {!d.isActive && d.isAvailable ? (
+            <TouchableOpacity
+              style={[styles.actionBtn, { backgroundColor: COLORS.primary, marginLeft: 10 }]}
+              onPress={() => handleDbSwitch(d.index)}
+              disabled={dbSwitching}
+            >
+              <Text style={styles.actionBtnText}>Use</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.dbDot, { backgroundColor: d.isAvailable ? '#4CAF50' : '#F44336' }]} />
+          )}
         </View>
       ))}
 
