@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, TextInput, Image,
   StyleSheet, RefreshControl, Linking, Alert, ActivityIndicator, Modal,
   ScrollView, Dimensions, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, LISTING_CATEGORIES } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +31,7 @@ export default function MarketplaceScreen() {
   const [category, setCategory] = useState('ELECTRONICS');
   const [whatsapp, setWhatsapp] = useState(user?.whatsapp || user?.phone || '');
   const [images, setImages] = useState([]);
+  const [video, setVideo] = useState(null);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -71,6 +73,22 @@ export default function MarketplaceScreen() {
     }
   };
 
+  const pickVideo = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 30 * 1024 * 1024) {
+        Alert.alert('Too Large', 'Video must be under 30MB.');
+        return;
+      }
+      setVideo(asset);
+    }
+  };
+
   const createListing = async () => {
     if (!title || !description || !price || !whatsapp) {
       Alert.alert('Required Fields', 'Please fill in all required fields including WhatsApp number.');
@@ -85,12 +103,19 @@ export default function MarketplaceScreen() {
       formData.append('category', category);
       formData.append('whatsapp', whatsapp);
       images.forEach((img, idx) => {
-        formData.append('images', {
+        formData.append('media', {
           uri: img.uri,
           type: 'image/jpeg',
           name: `listing_${idx}.jpg`,
         });
       });
+      if (video) {
+        formData.append('media', {
+          uri: video.uri,
+          type: 'video/mp4',
+          name: 'listing_video.mp4',
+        });
+      }
       await listingsAPI.create(formData);
       setShowCreate(false);
       resetForm();
@@ -109,6 +134,7 @@ export default function MarketplaceScreen() {
     setPrice('');
     setCategory('ELECTRONICS');
     setImages([]);
+    setVideo(null);
   };
 
   const markAsSold = async (itemId) => {
@@ -244,6 +270,19 @@ export default function MarketplaceScreen() {
             )}
             {item.images && item.images.length > 1 && (
               <Text style={styles.imageCount}>📷 {item.images.length} photos - swipe to see more</Text>
+            )}
+
+            {/* Video */}
+            {item.videos && item.videos.length > 0 && (
+              <View style={styles.videoSection}>
+                <Video
+                  source={{ uri: item.videos[0] }}
+                  style={styles.detailVideo}
+                  useNativeControls
+                  resizeMode="contain"
+                  shouldPlay={false}
+                />
+              </View>
             )}
 
             {/* Details */}
@@ -460,6 +499,25 @@ export default function MarketplaceScreen() {
               </View>
             )}
 
+            <TouchableOpacity style={styles.imagePickBtn} onPress={pickVideo}>
+              <Text style={styles.imagePickIcon}>🎥</Text>
+              <Text style={styles.imagePickText}>{video ? '✅ Video Selected (tap to change)' : 'Add Video (optional, up to 30MB)'}</Text>
+            </TouchableOpacity>
+
+            {video && (
+              <View style={styles.videoPreviewRow}>
+                <Video
+                  source={{ uri: video.uri }}
+                  style={styles.videoPreview}
+                  useNativeControls
+                  resizeMode="contain"
+                />
+                <TouchableOpacity onPress={() => setVideo(null)} style={styles.removeVideoBtn}>
+                  <Text style={styles.removeVideoText}>✕ Remove</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             <TouchableOpacity
               style={[styles.submitButton, creating && { opacity: 0.6 }]}
               onPress={createListing}
@@ -626,6 +684,12 @@ const styles = StyleSheet.create({
   imagePickText: { color: COLORS.textSecondary, fontSize: 15, fontWeight: '500' },
   previewRow: { flexDirection: 'row', marginTop: 12, gap: 8, flexWrap: 'wrap' },
   previewImg: { width: 70, height: 70, borderRadius: 10 },
+  videoPreviewRow: { marginTop: 12, alignItems: 'center' },
+  videoPreview: { width: '100%', height: 200, borderRadius: 10, backgroundColor: '#000' },
+  removeVideoBtn: { marginTop: 6 },
+  removeVideoText: { color: COLORS.error || '#E53935', fontWeight: '600', fontSize: 13 },
+  videoSection: { marginHorizontal: 16, marginTop: 8 },
+  detailVideo: { width: '100%', height: 250, borderRadius: 10, backgroundColor: '#000' },
   submitButton: {
     backgroundColor: COLORS.primary,
     padding: 16,

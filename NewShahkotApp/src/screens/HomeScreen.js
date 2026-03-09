@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, APP_NAME } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
-import { postsAPI, listingsAPI, newsAPI, tournamentsAPI, jobsAPI, notificationsAPI } from '../services/api';
+import { listingsAPI, newsAPI, tournamentsAPI, jobsAPI, notificationsAPI } from '../services/api';
 import AdBanner from '../components/AdBanner';
 
 const { width } = Dimensions.get('window');
@@ -19,7 +19,6 @@ export default function HomeScreen({ navigation }) {
   const [trendingListings, setTrendingListings] = useState([]);
   const [latestNews, setLatestNews] = useState([]);
   const [upcomingMatches, setUpcomingMatches] = useState([]);
-  const [recentPosts, setRecentPosts] = useState([]);
   const [latestJobs, setLatestJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -49,7 +48,6 @@ export default function HomeScreen({ navigation }) {
         if (data.listings) setTrendingListings(data.listings);
         if (data.news) setLatestNews(data.news);
         if (data.tournaments) setUpcomingMatches(data.tournaments);
-        if (data.posts) setRecentPosts(data.posts);
         if (data.jobs) setLatestJobs(data.jobs);
         setLoading(false); // show cached content immediately
       }
@@ -65,27 +63,24 @@ export default function HomeScreen({ navigation }) {
 
   const loadHomeData = async () => {
     try {
-      const [listingsRes, newsRes, tournamentsRes, postsRes, jobsRes] = await Promise.allSettled([
+      const [listingsRes, newsRes, tournamentsRes, jobsRes] = await Promise.allSettled([
         listingsAPI.getAll({ limit: 6 }),
         newsAPI.getAll({ limit: 4 }),
         tournamentsAPI.getAll(),
-        postsAPI.getFeed(1),
         jobsAPI.getAll({ limit: 4 }),
       ]);
       const listings = listingsRes.status === 'fulfilled' ? listingsRes.value.data.listings?.slice(0, 6) || [] : trendingListings;
       const news = newsRes.status === 'fulfilled' ? newsRes.value.data.news?.slice(0, 4) || [] : latestNews;
       const tournaments = tournamentsRes.status === 'fulfilled' ? tournamentsRes.value.data.tournaments?.slice(0, 3) || [] : upcomingMatches;
-      const posts = postsRes.status === 'fulfilled' ? postsRes.value.data.posts?.slice(0, 4) || [] : recentPosts;
       const jobs = jobsRes.status === 'fulfilled' ? jobsRes.value.data.jobs?.slice(0, 4) || [] : latestJobs;
 
       setTrendingListings(listings);
       setLatestNews(news);
       setUpcomingMatches(tournaments);
-      setRecentPosts(posts);
       setLatestJobs(jobs);
 
       // Cache for next launch
-      AsyncStorage.setItem(HOME_CACHE_KEY, JSON.stringify({ listings, news, tournaments, posts, jobs })).catch(() => {});
+      AsyncStorage.setItem(HOME_CACHE_KEY, JSON.stringify({ listings, news, tournaments, jobs })).catch(() => {});
     } catch (error) {
       console.error('Home data error:', error);
     } finally {
@@ -114,7 +109,6 @@ export default function HomeScreen({ navigation }) {
 
   const SERVICES_ROW = [
     { key: 'Explore', label: 'Explore All', icon: 'compass', color: COLORS.primary },
-    { key: 'Feed', label: 'Feed', icon: 'chatbubbles', color: '#6366F1' },
     { key: 'Community', label: 'Community', icon: 'people', color: '#14B8A6' },
     { key: 'Helpline', label: 'Helplines', icon: 'call', color: '#EF4444' },
   ];
@@ -333,49 +327,6 @@ export default function HomeScreen({ navigation }) {
           </View>
         )}
 
-        {/* Recent Posts */}
-        {recentPosts.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleRow}>
-                <Ionicons name="chatbubble-ellipses" size={20} color="#6366F1" />
-                <Text style={styles.sectionTitle}>Community Posts</Text>
-              </View>
-              <TouchableOpacity onPress={() => navigation.navigate('Feed')}>
-                <Text style={styles.seeAll}>See All</Text>
-              </TouchableOpacity>
-            </View>
-            {recentPosts.slice(0, 3).map((item) => (
-              <TouchableOpacity key={item.id} style={styles.postCard} onPress={() => navigation.navigate('Feed')}>
-                <View style={styles.postHeader}>
-                  {item.user?.photoUrl ? (
-                    <Image source={{ uri: item.user.photoUrl }} style={styles.postAvatar} />
-                  ) : (
-                    <View style={[styles.postAvatar, { backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' }]}>
-                      <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>{item.user?.name?.[0] || '?'}</Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.postUser}>{item.user?.name}</Text>
-                    <Text style={styles.postTime}>{new Date(item.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short' })}</Text>
-                  </View>
-                </View>
-                {item.text && <Text style={styles.postText} numberOfLines={2}>{item.text}</Text>}
-                <View style={styles.postStats}>
-                  <View style={styles.postStatItem}>
-                    <Ionicons name="heart" size={14} color="#FF6584" />
-                    <Text style={styles.postStatText}>{item.likesCount || 0}</Text>
-                  </View>
-                  <View style={styles.postStatItem}>
-                    <Ionicons name="chatbubble" size={14} color="#6366F1" />
-                    <Text style={styles.postStatText}>{item.commentsCount || 0}</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
         {/* Footer */}
         <View style={styles.footer}>
           <Image source={require('../../assets/logo.png')} style={{ width: 40, height: 40, borderRadius: 20, marginBottom: 8, opacity: 0.8 }} resizeMode="contain" />
@@ -469,17 +420,6 @@ const styles = StyleSheet.create({
   tournamentIconWrap: { width: 42, height: 42, borderRadius: 12, backgroundColor: '#10B98112', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   tournamentName: { fontSize: 15, fontWeight: '700', color: COLORS.text },
   tournamentVenue: { fontSize: 12, color: COLORS.textLight },
-
-  // Posts
-  postCard: { backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, marginBottom: 8, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
-  postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-  postAvatar: { width: 32, height: 32, borderRadius: 16, marginRight: 10 },
-  postUser: { fontSize: 14, fontWeight: '700', color: COLORS.text },
-  postTime: { fontSize: 11, color: COLORS.textLight },
-  postText: { fontSize: 13, color: COLORS.textSecondary, lineHeight: 18, marginBottom: 8 },
-  postStats: { flexDirection: 'row', gap: 16 },
-  postStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  postStatText: { fontSize: 12, color: COLORS.textLight },
 
   // Footer
   footer: { alignItems: 'center', paddingVertical: 30, backgroundColor: COLORS.primary, borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: 24 },

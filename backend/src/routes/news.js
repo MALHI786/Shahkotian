@@ -3,8 +3,9 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/database');
 const { authenticate, adminOnly } = require('../middleware/auth');
-const { upload } = require('../utils/upload');
+const { uploadListingMedia, ALLOWED_VIDEO_TYPES } = require('../utils/upload');
 const { uploadMultipleImages } = require('../utils/imageUpload');
+const { uploadMultipleVideosToCloudinary } = require('../utils/cloudinaryUpload');
 
 const router = express.Router();
 
@@ -146,7 +147,7 @@ router.get('/:id', authenticate, async (req, res) => {
  * POST /api/news
  * Create news article (ALL AUTHENTICATED USERS)
  */
-router.post('/', authenticate, upload.array('images', 5), async (req, res) => {
+router.post('/', authenticate, uploadListingMedia.array('media', 6), async (req, res) => {
   try {
     const { title, content, category } = req.body;
 
@@ -154,10 +155,14 @@ router.post('/', authenticate, upload.array('images', 5), async (req, res) => {
       return res.status(400).json({ error: 'Title, content, and category are required.' });
     }
 
-    // Upload images
+    // Separate image files from video files
     let imageUrls = [];
+    let videoUrls = [];
     if (req.files && req.files.length > 0) {
-      imageUrls = await uploadMultipleImages(req.files);
+      const imageFiles = req.files.filter(f => !ALLOWED_VIDEO_TYPES.includes(f.mimetype));
+      const videoFiles = req.files.filter(f => ALLOWED_VIDEO_TYPES.includes(f.mimetype));
+      if (imageFiles.length > 0) imageUrls = await uploadMultipleImages(imageFiles);
+      if (videoFiles.length > 0) videoUrls = await uploadMultipleVideosToCloudinary(videoFiles, 'shahkot/news');
     }
 
     // Create news article linked to authenticated user
@@ -167,6 +172,7 @@ router.post('/', authenticate, upload.array('images', 5), async (req, res) => {
         title,
         content,
         images: imageUrls,
+        videos: videoUrls,
         category,
       },
       include: {

@@ -1,8 +1,9 @@
 const express = require('express');
 const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
-const { upload } = require('../utils/upload');
+const { uploadListingMedia, ALLOWED_VIDEO_TYPES } = require('../utils/upload');
 const { uploadMultipleImages } = require('../utils/imageUpload');
+const { uploadMultipleVideosToCloudinary } = require('../utils/cloudinaryUpload');
 
 const router = express.Router();
 
@@ -88,9 +89,9 @@ router.get('/:id', authenticate, async (req, res) => {
 
 /**
  * POST /api/listings
- * Create a new listing (images only, NO videos)
+ * Create a new listing (images + optional video up to 30MB)
  */
-router.post('/', authenticate, upload.array('images', 5), async (req, res) => {
+router.post('/', authenticate, uploadListingMedia.array('media', 6), async (req, res) => {
   try {
     const { title, description, price, category, whatsapp } = req.body;
 
@@ -101,10 +102,14 @@ router.post('/', authenticate, upload.array('images', 5), async (req, res) => {
       });
     }
 
-    // Upload images
+    // Separate image files from video files
     let imageUrls = [];
+    let videoUrls = [];
     if (req.files && req.files.length > 0) {
-      imageUrls = await uploadMultipleImages(req.files);
+      const imageFiles = req.files.filter(f => !ALLOWED_VIDEO_TYPES.includes(f.mimetype));
+      const videoFiles = req.files.filter(f => ALLOWED_VIDEO_TYPES.includes(f.mimetype));
+      if (imageFiles.length > 0) imageUrls = await uploadMultipleImages(imageFiles);
+      if (videoFiles.length > 0) videoUrls = await uploadMultipleVideosToCloudinary(videoFiles, 'shahkot/listings');
     }
 
     const listing = await prisma.listing.create({
@@ -115,6 +120,7 @@ router.post('/', authenticate, upload.array('images', 5), async (req, res) => {
         price: parseFloat(price),
         category,
         images: imageUrls,
+        videos: videoUrls,
         whatsapp,
       },
       include: {

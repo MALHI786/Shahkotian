@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ActivityIndicator, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Image, ActivityIndicator, ScrollView, Linking, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../config/constants';
@@ -9,6 +9,10 @@ import { authAPI } from '../services/api';
 export default function ProfileScreen({ navigation }) {
   const { user, logout, isAdmin, updateUser } = useAuth();
   const [uploading, setUploading] = useState(false);
+  const [showEditPhone, setShowEditPhone] = useState(false);
+  const [editPhone, setEditPhone] = useState(user?.phone || '');
+  const [editWhatsapp, setEditWhatsapp] = useState(user?.whatsapp || '');
+  const [savingPhone, setSavingPhone] = useState(false);
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -75,6 +79,25 @@ export default function ProfileScreen({ navigation }) {
     ]);
   };
 
+  const savePhoneNumbers = async () => {
+    setSavingPhone(true);
+    try {
+      const response = await authAPI.updateProfile({
+        phone: editPhone.trim() || null,
+        whatsapp: editWhatsapp.trim() || null,
+      });
+      if (response.data.user && updateUser) {
+        updateUser(response.data.user);
+      }
+      setShowEditPhone(false);
+      Alert.alert('Success', 'Phone numbers updated!');
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.error || 'Failed to update phone numbers.');
+    } finally {
+      setSavingPhone(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Profile Header */}
@@ -111,19 +134,17 @@ export default function ProfileScreen({ navigation }) {
 
       {/* Info Cards */}
       <View style={styles.infoSection}>
-        <InfoItem icon="📱" label="Phone" value={user?.phone} />
+        <InfoItem icon="📱" label="Phone" value={user?.phone || 'Not set'} />
         <InfoItem icon="📧" label="Email" value={user?.email || 'Not set'} />
-        <InfoItem icon="💬" label="WhatsApp" value={user?.whatsapp || user?.phone} />
+        <InfoItem icon="💬" label="WhatsApp" value={user?.whatsapp || user?.phone || 'Not set'} />
+        <TouchableOpacity style={styles.editPhoneBtn} onPress={() => { setEditPhone(user?.phone || ''); setEditWhatsapp(user?.whatsapp || ''); setShowEditPhone(true); }}>
+          <Ionicons name="pencil" size={16} color={COLORS.primary} />
+          <Text style={styles.editPhoneBtnText}>Edit Phone / WhatsApp</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Quick Links */}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Feed')}>
-          <Text style={styles.actionIcon}>📝</Text>
-          <Text style={styles.actionText}>My Posts</Text>
-          <Text style={styles.actionArrow}>></Text>
-        </TouchableOpacity>
-
         <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Market')}>
           <Text style={styles.actionIcon}>🛒</Text>
           <Text style={styles.actionText}>My Listings</Text>
@@ -181,6 +202,41 @@ export default function ProfileScreen({ navigation }) {
         </TouchableOpacity>
       </View>
       <View style={{ height: 40 }} />
+
+      {/* Edit Phone/WhatsApp Modal */}
+      <Modal visible={showEditPhone} animationType="slide" transparent>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Edit Phone Numbers</Text>
+            <Text style={styles.modalLabel}>Phone Number</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="e.g. 03001234567"
+              value={editPhone}
+              onChangeText={setEditPhone}
+              keyboardType="phone-pad"
+              placeholderTextColor={COLORS.textLight}
+            />
+            <Text style={styles.modalLabel}>WhatsApp Number</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="e.g. 03001234567"
+              value={editWhatsapp}
+              onChangeText={setEditWhatsapp}
+              keyboardType="phone-pad"
+              placeholderTextColor={COLORS.textLight}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowEditPhone(false)}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalSaveBtn, savingPhone && { opacity: 0.6 }]} onPress={savePhoneNumbers} disabled={savingPhone}>
+                {savingPhone ? <ActivityIndicator color={COLORS.white} size="small" /> : <Text style={styles.modalSaveText}>Save</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScrollView>
   );
 }
@@ -307,6 +363,18 @@ const styles = StyleSheet.create({
   actionArrow: { fontSize: 18, color: COLORS.textLight },
   adminAction: { borderWidth: 1, borderColor: COLORS.primary + '30' },
   logoutButton: { borderWidth: 1, borderColor: COLORS.error + '30' },
+  editPhoneBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderTopWidth: 1, borderTopColor: COLORS.border },
+  editPhoneBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginBottom: 16 },
+  modalLabel: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 6 },
+  modalInput: { backgroundColor: COLORS.background, borderRadius: 12, padding: 14, fontSize: 15, color: COLORS.text, borderWidth: 1, borderColor: COLORS.border, marginBottom: 14 },
+  modalActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  modalCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: COLORS.border },
+  modalCancelText: { fontSize: 15, fontWeight: '600', color: COLORS.text },
+  modalSaveBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', backgroundColor: COLORS.primary },
+  modalSaveText: { fontSize: 15, fontWeight: '700', color: COLORS.white },
   contactAdminCard: {
     backgroundColor: COLORS.surface,
     borderRadius: 14,

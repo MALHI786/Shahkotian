@@ -4,6 +4,7 @@ import {
   RefreshControl, Image, Modal, ScrollView, TextInput, Alert,
   ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, NEWS_CATEGORIES } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +25,7 @@ export default function NewsScreen() {
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('LOCAL');
   const [images, setImages] = useState([]);
+  const [video, setVideo] = useState(null);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -55,6 +57,22 @@ export default function NewsScreen() {
     }
   };
 
+  const pickVideo = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      allowsMultipleSelection: false,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 30 * 1024 * 1024) {
+        Alert.alert('Too Large', 'Video must be under 30MB.');
+        return;
+      }
+      setVideo(asset);
+    }
+  };
+
   const handleCreate = async () => {
     if (!title.trim() || !content.trim()) {
       return Alert.alert('Required', 'Title and content are required.');
@@ -66,16 +84,23 @@ export default function NewsScreen() {
       formData.append('content', content.trim());
       formData.append('category', category);
       images.forEach((uri, i) => {
-        formData.append('images', {
+        formData.append('media', {
           uri,
           name: `news_${i}.jpg`,
           type: 'image/jpeg',
         });
       });
+      if (video) {
+        formData.append('media', {
+          uri: video.uri,
+          name: 'news_video.mp4',
+          type: 'video/mp4',
+        });
+      }
       await newsAPI.create(formData);
       Alert.alert('Published!', 'Article published successfully.');
       setShowCreate(false);
-      setTitle(''); setContent(''); setCategory('LOCAL'); setImages([]);
+      setTitle(''); setContent(''); setCategory('LOCAL'); setImages([]); setVideo(null);
       loadNews();
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to publish article.');
@@ -201,6 +226,15 @@ export default function NewsScreen() {
               {selectedArticle.images?.length > 0 && (
                 <Image source={{ uri: selectedArticle.images[0] }} style={styles.detailImage} resizeMode="cover" />
               )}
+              {selectedArticle.videos?.length > 0 && (
+                <Video
+                  source={{ uri: selectedArticle.videos[0] }}
+                  style={styles.detailVideo}
+                  useNativeControls
+                  resizeMode="contain"
+                  shouldPlay={false}
+                />
+              )}
               <View style={styles.categoryBadge}>
                 <Text style={styles.categoryBadgeText}>{selectedArticle.category}</Text>
               </View>
@@ -267,6 +301,22 @@ export default function NewsScreen() {
                   <Image key={i} source={{ uri }} style={styles.previewImg} />
                 ))}
               </ScrollView>
+            )}
+            <TouchableOpacity style={styles.imgPicker} onPress={pickVideo}>
+              <Text style={styles.imgPickerText}>🎥 {video ? '✅ Video Selected (tap to change)' : 'Add Video (optional, up to 30MB)'}</Text>
+            </TouchableOpacity>
+            {video && (
+              <View style={styles.videoPreviewRow}>
+                <Video
+                  source={{ uri: video.uri }}
+                  style={styles.videoPreview}
+                  useNativeControls
+                  resizeMode="contain"
+                />
+                <TouchableOpacity onPress={() => setVideo(null)} style={styles.removeVideoBtn}>
+                  <Text style={styles.removeVideoText}>✕ Remove</Text>
+                </TouchableOpacity>
+              </View>
             )}
             <TouchableOpacity style={styles.submitBtn} onPress={handleCreate} disabled={creating}>
               {creating ? (
@@ -377,6 +427,11 @@ const styles = StyleSheet.create({
   },
   imgPickerText: { fontSize: 14, color: COLORS.textSecondary },
   previewImg: { width: 80, height: 80, borderRadius: 10, marginRight: 8 },
+  videoPreviewRow: { marginTop: 8, marginBottom: 16, alignItems: 'center' },
+  videoPreview: { width: '100%', height: 200, borderRadius: 10, backgroundColor: '#000' },
+  removeVideoBtn: { marginTop: 6 },
+  removeVideoText: { color: '#E53935', fontWeight: '600', fontSize: 13 },
+  detailVideo: { width: '100%', height: 250, borderRadius: 10, backgroundColor: '#000', marginTop: 8 },
   submitBtn: {
     backgroundColor: COLORS.primary,
     paddingVertical: 16,

@@ -11,7 +11,6 @@ const CATEGORIES = [
     icon: 'people',
     color: '#6366F1',
     items: [
-      { key: 'Feed', label: 'Posts / Feed', icon: 'chatbubble-ellipses', desc: 'Community Posts', color: '#6366F1' },
       { key: 'OpenChat', label: 'Open Chat', icon: 'chatbubbles', desc: 'Public Chat Room', color: '#14B8A6' },
       { key: 'Rishta', label: 'Rishta', icon: 'heart-circle', desc: 'Matrimonial', color: '#EC4899' },
       { key: 'DMList', label: 'DM Chat', icon: 'mail', desc: 'Private Messages', color: '#8B5CF6' },
@@ -92,7 +91,6 @@ export default function ExploreScreen({ navigation }) {
         {/* Quick Actions */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickRow}>
           {[
-            { key: 'Feed', label: 'New Post', icon: 'create', color: '#6366F1' },
             { key: 'Jobs', label: 'Post Job', icon: 'briefcase', color: '#2563EB' },
             { key: 'Market', label: 'Sell Item', icon: 'add-circle', color: '#FF6584' },
             { key: 'AIChatbot', label: 'Ask AI', icon: 'sparkles', color: '#8B5CF6' },

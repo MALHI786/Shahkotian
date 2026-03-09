@@ -22,7 +22,6 @@ router.get('/dashboard', async (req, res) => {
   try {
     const [
       totalUsers,
-      totalPosts,
       totalListings,
       totalTournaments,
       pendingRishta,
@@ -32,7 +31,6 @@ router.get('/dashboard', async (req, res) => {
       totalDoctors,
     ] = await Promise.all([
       prisma.user.count(),
-      prisma.post.count(),
       prisma.listing.count(),
       prisma.tournament.count(),
       prisma.rishtaProfile.count({ where: { status: 'PENDING' } }),
@@ -45,7 +43,6 @@ router.get('/dashboard', async (req, res) => {
     res.json({
       stats: {
         totalUsers,
-        totalPosts,
         totalListings,
         totalTournaments,
         pendingRishta,
@@ -96,7 +93,7 @@ router.get('/users', async (req, res) => {
           role: true,
           isActive: true,
           createdAt: true,
-          _count: { select: { posts: true, listings: true } },
+          _count: { select: { listings: true } },
         },
       }),
       prisma.user.count({ where }),
@@ -379,20 +376,6 @@ router.delete('/reporters/:id', async (req, res) => {
 // ============ CONTENT MODERATION ============
 
 /**
- * DELETE /api/admin/posts/:id
- * Delete any post (moderation)
- */
-router.delete('/posts/:id', async (req, res) => {
-  try {
-    await prisma.post.delete({ where: { id: req.params.id } });
-    res.json({ message: 'Post removed by admin.' });
-  } catch (error) {
-    console.error('Admin delete post error:', error);
-    res.status(500).json({ error: 'Failed to delete post.' });
-  }
-});
-
-/**
  * DELETE /api/admin/listings/:id
  * Delete any listing (moderation)
  */
@@ -417,12 +400,9 @@ router.delete('/users/:id', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found.' });
 
     await prisma.$transaction([
-      prisma.like.deleteMany({ where: { userId: id } }),
-      prisma.comment.deleteMany({ where: { userId: id } }),
       prisma.chatMessage.deleteMany({ where: { userId: id } }),
       prisma.notification.deleteMany({ where: { userId: id } }),
       prisma.rishtaProfile.deleteMany({ where: { userId: id } }),
-      prisma.post.deleteMany({ where: { userId: id } }),
       prisma.listing.deleteMany({ where: { userId: id } }),
       prisma.user.delete({ where: { id } }),
     ]);
@@ -431,19 +411,6 @@ router.delete('/users/:id', async (req, res) => {
   } catch (error) {
     console.error('Admin delete user error:', error);
     res.status(500).json({ error: 'Failed to delete user.' });
-  }
-});
-
-/**
- * DELETE /api/admin/comments/:id
- */
-router.delete('/comments/:id', async (req, res) => {
-  try {
-    await prisma.comment.delete({ where: { id: req.params.id } });
-    res.json({ message: 'Comment deleted.' });
-  } catch (error) {
-    console.error('Delete comment error:', error);
-    res.status(500).json({ error: 'Failed to delete comment.' });
   }
 });
 
@@ -491,8 +458,8 @@ router.delete('/notifications-bulk', async (req, res) => {
 // Storage info endpoint
 router.get('/storage', async (req, res) => {
   try {
-    const [users, posts, listings, comments, likes, chatMessages, news, tournaments, shops, govtOffices, rishtaProfiles, notifications, doctors] = await Promise.all([
-      prisma.user.count(), prisma.post.count(), prisma.listing.count(), prisma.comment.count(), prisma.like.count(), prisma.chatMessage.count(), prisma.news.count(), prisma.tournament.count(), prisma.shop.count(), prisma.govtOffice.count(), prisma.rishtaProfile.count(), prisma.notification.count(), prisma.doctor.count()
+    const [users, listings, chatMessages, news, tournaments, shops, govtOffices, rishtaProfiles, notifications, doctors] = await Promise.all([
+      prisma.user.count(), prisma.listing.count(), prisma.chatMessage.count(), prisma.news.count(), prisma.tournament.count(), prisma.shop.count(), prisma.govtOffice.count(), prisma.rishtaProfile.count(), prisma.notification.count(), prisma.doctor.count()
     ]);
 
     let dbSizeMB = -1;
@@ -501,7 +468,7 @@ router.get('/storage', async (req, res) => {
       dbSizeMB = Math.round((Number(result[0].size) / (1024 * 1024)) * 100) / 100;
     } catch (e) { dbSizeMB = -1; }
 
-    res.json({ databaseSizeMB: dbSizeMB, totals: { users, posts, listings, comments, likes, chatMessages, news, tournaments, shops, govtOffices, rishtaProfiles, notifications, doctors } });
+    res.json({ databaseSizeMB: dbSizeMB, totals: { users, listings, chatMessages, news, tournaments, shops, govtOffices, rishtaProfiles, notifications, doctors } });
   } catch (error) {
     console.error('Storage info error:', error);
     res.status(500).json({ error: 'Failed to get storage info.' });

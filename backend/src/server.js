@@ -11,7 +11,6 @@ const compression = require('compression');
 
 const prisma = require('./config/database');
 const authRoutes = require('./routes/auth');
-const postRoutes = require('./routes/posts');
 const listingRoutes = require('./routes/listings');
 const tournamentRoutes = require('./routes/tournaments');
 const govtOfficeRoutes = require('./routes/govtOffices');
@@ -102,7 +101,6 @@ app.post('/api/cloudinary-switch', authenticate, adminOnly, async (req, res) => 
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/posts', postRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/govt-offices', govtOfficeRoutes);

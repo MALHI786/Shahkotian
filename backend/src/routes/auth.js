@@ -496,14 +496,25 @@ router.get('/profile', authenticate, async (req, res) => {
  */
 router.put('/profile', authenticate, async (req, res) => {
   try {
-    const { name, email, whatsapp, photoUrl } = req.body;
+    const { name, email, whatsapp, photoUrl, phone } = req.body;
+
+    // If phone is being updated, check uniqueness
+    if (phone !== undefined && phone !== null && phone !== '') {
+      const existingPhone = await prisma.user.findFirst({
+        where: { phone, id: { not: req.user.id } },
+      });
+      if (existingPhone) {
+        return res.status(409).json({ error: 'This phone number is already in use by another account.' });
+      }
+    }
 
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: {
         ...(name && { name }),
         ...(email && { email }),
-        ...(whatsapp && { whatsapp }),
+        ...(whatsapp !== undefined && { whatsapp: whatsapp || null }),
+        ...(phone !== undefined && { phone: phone || null }),
         ...(photoUrl && { photoUrl }),
       },
       select: {

@@ -57,4 +57,11 @@ const uploadRishta = multer({ storage, fileFilter: imageFilter, limits: { fileSi
   { name: 'photos', maxCount: 3 },
 ]);
 
-module.exports = { upload, uploadMedia, uploadSingle, uploadCNIC, uploadRishta, ALLOWED_IMAGE_TYPES, ALLOWED_VIDEO_TYPES };
+// Listing/News media upload (images + optional video, 30MB limit)
+const uploadListingMedia = multer({
+  storage,
+  fileFilter: mediaFilter,
+  limits: { fileSize: 30 * 1024 * 1024, files: 6 },
+});
+
+module.exports = { upload, uploadMedia, uploadSingle, uploadCNIC, uploadRishta, uploadListingMedia, ALLOWED_IMAGE_TYPES, ALLOWED_VIDEO_TYPES };

@@ -48,26 +48,13 @@ export const authAPI = {
   }),
 };
 
-// ============ POSTS API ============
-export const postsAPI = {
-  getFeed: (page = 1) => api.get(`/posts?page=${page}`),
-  getVideos: (page = 1) => api.get(`/posts/videos?page=${page}`),
-  createPost: (formData) => api.post('/posts', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 300000, // 5 minutes for video uploads
-  }),
-  likePost: (id) => api.post(`/posts/${id}/like`),
-  getComments: (id, page = 1) => api.get(`/posts/${id}/comments?page=${page}`),
-  addComment: (id, text) => api.post(`/posts/${id}/comments`, { text }),
-  deletePost: (id) => api.delete(`/posts/${id}`),
-};
-
 // ============ LISTINGS API ============
 export const listingsAPI = {
   getAll: (params) => api.get('/listings', { params }),
   getOne: (id) => api.get(`/listings/${id}`),
   create: (formData) => api.post('/listings', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 300000,
   }),
   update: (id, data) => api.put(`/listings/${id}`, data),
   delete: (id) => api.delete(`/listings/${id}`),
@@ -137,6 +124,7 @@ export const newsAPI = {
   getOne: (id) => api.get(`/news/${id}`),
   create: (formData) => api.post('/news', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 300000,
   }),
   delete: (id) => api.delete(`/news/${id}`),
 };
@@ -210,9 +198,7 @@ export const adminAPI = {
   addReporter: (data) => api.post('/admin/reporters', data),
   toggleReporter: (id) => api.put(`/admin/reporters/${id}/toggle-active`),
   deleteReporter: (id) => api.delete(`/admin/reporters/${id}`),
-  deletePost: (id) => api.delete(`/admin/posts/${id}`),
   deleteListing: (id) => api.delete(`/admin/listings/${id}`),
-  deleteComment: (id) => api.delete(`/admin/comments/${id}`),
   deleteChatMessage: (id) => api.delete(`/admin/chat-messages/${id}`),
   deleteNews: (id) => api.delete(`/admin/news/${id}`),
   deleteTournament: (id) => api.delete(`/admin/tournaments/${id}`),

@@ -179,21 +179,6 @@ export default function AdminDashboardScreen({ navigation }) {
     ]);
   };
 
-  const handleDeletePost = (id) => {
-    Alert.alert('Delete Post', 'Remove this post?', [
-      { text: 'Cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          try {
-            await adminAPI.deletePost(id);
-            Alert.alert('Deleted', 'Post removed.');
-          } catch (e) { Alert.alert('Error', 'Failed.'); }
-        },
-      },
-    ]);
-  };
-
   const handleCleanup = (target, label, olderThanDays = 30) => {
     Alert.alert(
       'Confirm Cleanup',
@@ -233,7 +218,6 @@ export default function AdminDashboardScreen({ navigation }) {
       <Text style={styles.sectionTitle}>App Statistics</Text>
       <View style={styles.statsGrid}>
         <StatCard icon="people" label="Users" value={stats?.stats?.totalUsers ?? 0} color="#4CAF50" />
-        <StatCard icon="document-text" label="Posts" value={stats?.stats?.totalPosts ?? 0} color="#2196F3" />
         <StatCard icon="cart" label="Listings" value={stats?.stats?.totalListings ?? 0} color="#FF9800" />
         <StatCard icon="heart" label="Pending Rishta" value={stats?.stats?.pendingRishta ?? 0} color="#E91E63" />
         <StatCard icon="trophy" label="Tournaments" value={stats?.stats?.totalTournaments ?? 0} color="#9C27B0" />
@@ -300,7 +284,7 @@ export default function AdminDashboardScreen({ navigation }) {
               <Text style={styles.userName}>{item.name}</Text>
               <Text style={styles.userPhone}>{item.phone} {item.email ? `• ${item.email}` : ''}</Text>
               <Text style={styles.userStats}>
-                {item._count?.posts || 0} posts • {item._count?.listings || 0} listings
+                {item._count?.listings || 0} listings
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end', gap: 6 }}>
@@ -486,9 +470,7 @@ export default function AdminDashboardScreen({ navigation }) {
           <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Record Counts</Text>
           <View style={styles.statsGrid}>
             <StatCard icon="👥" label="Users" value={storageInfo.totals.users ?? 0} color="#4CAF50" />
-            <StatCard icon="📝" label="Posts" value={storageInfo.totals.posts ?? 0} color="#2196F3" />
-            <StatCard icon="🛒" label="Listings" value={storageInfo.totals.listings ?? 0} color="#FF9800" />
-            <StatCard icon="💬" label="Comments" value={storageInfo.totals.comments ?? 0} color="#9C27B0" />
+            <StatCard icon="�" label="Listings" value={storageInfo.totals.listings ?? 0} color="#FF9800" />
             <StatCard icon="🔔" label="Notifications" value={storageInfo.totals.notifications ?? 0} color="#00BCD4" />
             <StatCard icon="💬" label="Chat Msgs" value={storageInfo.totals.chatMessages ?? 0} color="#795548" />
             <StatCard icon="📰" label="News" value={storageInfo.totals.news ?? 0} color="#E91E63" />
@@ -549,16 +531,10 @@ export default function AdminDashboardScreen({ navigation }) {
     />
   );
 
-  const handleReportAction = async (id, action, postId) => {
+  const handleReportAction = async (id, action) => {
     try {
-      if (action === 'DELETE_POST' && postId) {
-        await adminAPI.deletePost(postId);
-        await reportsAPI.takeAction(id, 'DISMISS');
-        Alert.alert('Done', 'Post deleted and report resolved.');
-      } else {
-        await reportsAPI.takeAction(id, action);
-        Alert.alert('Done', action === 'BLOCK' ? 'User blocked & report resolved' : 'Report dismissed');
-      }
+      await reportsAPI.takeAction(id, action);
+      Alert.alert('Done', action === 'BLOCK' ? 'User blocked & report resolved' : 'Report dismissed');
       setReports(prev => prev.filter(r => r.id !== id));
     } catch { Alert.alert('Error', 'Action failed'); }
   };
@@ -593,31 +569,7 @@ export default function AdminDashboardScreen({ navigation }) {
               {new Date(item.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
             </Text>
 
-            {/* Reported Post content */}
-            {item.targetType === 'POST' && item.reportedPost && (
-              <View style={{ marginTop: 10, backgroundColor: '#FEF2F2', borderRadius: 8, padding: 10, borderLeftWidth: 3, borderLeftColor: '#EF4444' }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B91C1C', marginBottom: 6 }}>
-                  📝 Reported Post by {item.reportedPost.user?.name || 'Unknown'}:
-                </Text>
-                {item.reportedPost.text ? (
-                  <Text style={{ fontSize: 13, color: '#333', marginBottom: 6 }} numberOfLines={6}>
-                    {item.reportedPost.text}
-                  </Text>
-                ) : null}
-                {item.reportedPost.images?.length > 0 && (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                    {item.reportedPost.images.map((img, idx) => (
-                      <Image key={idx} source={{ uri: img }} style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#ddd' }} />
-                    ))}
-                  </View>
-                )}
-                {item.reportedPost.videos?.length > 0 && (
-                  <Text style={{ fontSize: 12, color: '#666', marginTop: 4 }}>🎥 {item.reportedPost.videos.length} video(s) attached</Text>
-                )}
-              </View>
-            )}
-
-            {/* Context: Last 5 messages (for chat/dm reports) */}
+            {/* Context: Last 5 messages (for chat/dm reports) */}}
             {item.contextMessages && item.contextMessages.length > 0 && (
               <View style={{ marginTop: 10, backgroundColor: '#f0f0f0', borderRadius: 8, padding: 10 }}>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: COLORS.primary, marginBottom: 6 }}>
@@ -648,11 +600,6 @@ export default function AdminDashboardScreen({ navigation }) {
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#dc3545' }]} onPress={() => handleReportAction(item.id, 'BLOCK')}>
                 <Text style={styles.actionBtnText}>Block User</Text>
               </TouchableOpacity>
-              {item.targetType === 'POST' && item.reportedPost && (
-                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#E65100' }]} onPress={() => handleReportAction(item.id, 'DELETE_POST', item.targetId)}>
-                  <Text style={styles.actionBtnText}>Delete Post</Text>
-                </TouchableOpacity>
-              )}
               <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#6c757d' }]} onPress={() => handleReportAction(item.id, 'DISMISS')}>
                 <Text style={styles.actionBtnText}>Dismiss</Text>
               </TouchableOpacity>

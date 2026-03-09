@@ -13,7 +13,6 @@ import { initAds, onScreenView } from './src/utils/AdManager';
 import SplashScreen from './src/screens/SplashScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
-import FeedScreen from './src/screens/FeedScreen';
 import MarketplaceScreen from './src/screens/MarketplaceScreen';
 import ExploreScreen from './src/screens/ExploreScreen';
 import CommunityScreen from './src/screens/CommunityScreen';
@@ -27,7 +26,6 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import AdminDashboardScreen from './src/screens/AdminDashboardScreen';
 import WeatherScreen from './src/screens/WeatherScreen';
-import VideoFeedScreen from './src/screens/VideoFeedScreen';
 import BloodDonationScreen from './src/screens/BloodDonationScreen';
 import AIChatbotScreen from './src/screens/AIChatbotScreen';
 import DMChatScreen from './src/screens/DMChatScreen';
@@ -140,11 +138,9 @@ function AppNavigator() {
           <Stack.Screen name="News & Articles" component={NewsScreen} />
           <Stack.Screen name="Rishta" component={RishtaScreen} />
           <Stack.Screen name="Weather" component={WeatherScreen} />
-          <Stack.Screen name="VideoFeed" component={VideoFeedScreen} />
           <Stack.Screen name="BloodDonation" component={BloodDonationScreen} />
           <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
-          <Stack.Screen name="Feed" component={FeedScreen} />
           <Stack.Screen name="AIChatbot" component={AIChatbotScreen} />
           <Stack.Screen name="DMList" component={DMListScreen} />
           <Stack.Screen name="DMChat" component={DMChatScreen} />
