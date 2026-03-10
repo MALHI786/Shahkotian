@@ -4,6 +4,7 @@ import {
     StyleSheet, Linking, Alert,
 } from 'react-native';
 import { COLORS } from '../config/constants';
+import { useLanguage } from '../context/LanguageContext';
 
 const HELPLINES = [
     // === EMERGENCY ===
@@ -63,6 +64,7 @@ const HELPLINES = [
 const CATEGORIES = ['All', 'Emergency', 'CM Punjab', 'Police', 'Protection', 'Utility', 'Government', 'Transport', 'Health'];
 
 export default function HelplineScreen({ navigation }) {
+    const { t } = useLanguage();
     const [search, setSearch] = useState('');
     const [selectedCat, setSelectedCat] = useState('All');
 
@@ -76,7 +78,7 @@ export default function HelplineScreen({ navigation }) {
 
     const callNumber = (number) => {
         Linking.openURL(`tel:${number}`).catch(() =>
-            Alert.alert('Error', 'Unable to make a call from this device')
+            Alert.alert(t('error'), t('unableToCall'))
         );
     };
 
@@ -85,9 +87,9 @@ export default function HelplineScreen({ navigation }) {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backBtn}>{'<'} Back</Text>
+                    <Text style={styles.backBtn}>{'<'} {t('back')}</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>📞 Helplines</Text>
+                <Text style={styles.headerTitle}>{t('helplineTitle')}</Text>
                 <View style={{ width: 50 }} />
             </View>
 
@@ -95,8 +97,8 @@ export default function HelplineScreen({ navigation }) {
             <TouchableOpacity style={styles.emergencyBanner} onPress={() => callNumber('1122')}>
                 <Text style={styles.emergencyIcon}>🚨</Text>
                 <View style={{ flex: 1 }}>
-                    <Text style={styles.emergencyTitle}>Emergency? Call 1122</Text>
-                    <Text style={styles.emergencyDesc}>Rescue Punjab • Health & Rescue</Text>
+                    <Text style={styles.emergencyTitle}>{t('emergencyCall')}</Text>
+                    <Text style={styles.emergencyDesc}>{t('rescueHealth')}</Text>
                 </View>
                 <Text style={styles.callIcon}>📞</Text>
             </TouchableOpacity>
@@ -105,7 +107,7 @@ export default function HelplineScreen({ navigation }) {
             <View style={styles.searchRow}>
                 <TextInput
                     style={styles.searchInput}
-                    placeholder="Search helplines..."
+                    placeholder={t('searchHelplines')}
                     value={search}
                     onChangeText={setSearch}
                     placeholderTextColor={COLORS.textLight}
@@ -145,14 +147,14 @@ export default function HelplineScreen({ navigation }) {
                         </View>
                         <View style={styles.helplineNumber}>
                             <Text style={[styles.helplineNumText, { color: item.color }]}>{item.number}</Text>
-                            <Text style={styles.tapCall}>Tap to call</Text>
+                            <Text style={styles.tapCall}>{t('tapToCall')}</Text>
                         </View>
                     </TouchableOpacity>
                 )}
                 ListEmptyComponent={
                     <View style={{ alignItems: 'center', paddingVertical: 40 }}>
                         <Text style={{ fontSize: 40, marginBottom: 8 }}>🔍</Text>
-                        <Text style={{ color: COLORS.textLight }}>No helplines found</Text>
+                        <Text style={{ color: COLORS.textLight }}>{t('noHelplinesFound')}</Text>
                     </View>
                 }
             />

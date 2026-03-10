@@ -10,11 +10,13 @@ import { COLORS, LISTING_CATEGORIES } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
 import { listingsAPI } from '../services/api';
 import AdBanner from '../components/AdBanner';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
 export default function MarketplaceScreen() {
   const { user, isAdmin } = useAuth();
+  const { t } = useLanguage();
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,7 +60,7 @@ export default function MarketplaceScreen() {
   const openWhatsApp = (number, itemTitle) => {
     const msg = itemTitle ? `Hi, I'm interested in "${itemTitle}" listed on Shahkot App.` : '';
     const url = `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
-    Linking.openURL(url).catch(() => Alert.alert('Error', 'Unable to open WhatsApp'));
+    Linking.openURL(url).catch(() => Alert.alert(t('error'), 'Unable to open WhatsApp'));
   };
 
   const pickImages = async () => {
@@ -91,7 +93,7 @@ export default function MarketplaceScreen() {
 
   const createListing = async () => {
     if (!title || !description || !price || !whatsapp) {
-      Alert.alert('Required Fields', 'Please fill in all required fields including WhatsApp number.');
+      Alert.alert(t('requiredFields'), t('fillAllFieldsWhatsapp'));
       return;
     }
     setCreating(true);
@@ -120,9 +122,9 @@ export default function MarketplaceScreen() {
       setShowCreate(false);
       resetForm();
       loadListings();
-      Alert.alert('Success', 'Listing created!');
+      Alert.alert(t('success'), t('listingCreated'));
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.error || 'Failed to create listing.');
+      Alert.alert(t('error'), error.response?.data?.error || 'Failed to create listing.');
     } finally {
       setCreating(false);
     }
@@ -138,18 +140,18 @@ export default function MarketplaceScreen() {
   };
 
   const markAsSold = async (itemId) => {
-    Alert.alert('Mark as Sold', 'Mark this item as sold?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('markAsSold'), t('markAsSoldConfirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Mark Sold',
+        text: t('markSold'),
         onPress: async () => {
           try {
             await listingsAPI.update(itemId, { isSold: true });
             setSelectedListing(null);
             loadListings();
-            Alert.alert('Done', 'Item marked as sold!');
+            Alert.alert(t('done'), t('itemSold'));
           } catch (error) {
-            Alert.alert('Error', 'Failed to update listing.');
+            Alert.alert(t('error'), 'Failed to update listing.');
           }
         },
       },
@@ -157,19 +159,19 @@ export default function MarketplaceScreen() {
   };
 
   const deleteListing = async (itemId) => {
-    Alert.alert('Delete Listing', 'Are you sure you want to delete this listing?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('deleteListing'), t('deleteListingConfirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await listingsAPI.delete(itemId);
             setSelectedListing(null);
             loadListings();
-            Alert.alert('Deleted', 'Listing removed.');
+            Alert.alert(t('deleted'), t('listingDeleted'));
           } catch (error) {
-            Alert.alert('Error', 'Failed to delete listing.');
+            Alert.alert(t('error'), 'Failed to delete listing.');
           }
         },
       },
@@ -198,12 +200,12 @@ export default function MarketplaceScreen() {
         ) : (
           <View style={styles.noImagePlaceholder}>
             <Text style={styles.noImageIcon}>{catInfo.icon}</Text>
-            <Text style={styles.noImageText}>No Photo</Text>
+            <Text style={styles.noImageText}>{t('noPhoto')}</Text>
           </View>
         )}
         {item.isSold && (
           <View style={styles.soldBadge}>
-            <Text style={styles.soldText}>SOLD</Text>
+            <Text style={styles.soldText}>{t('sold')}</Text>
           </View>
         )}
         <View style={styles.listingInfo}>
@@ -238,9 +240,9 @@ export default function MarketplaceScreen() {
           {/* Header */}
           <View style={styles.detailHeader}>
             <TouchableOpacity onPress={() => setSelectedListing(null)}>
-              <Text style={styles.detailBackBtn}>{'<'} Back</Text>
+              <Text style={styles.detailBackBtn}>{'<'} {t('back')}</Text>
             </TouchableOpacity>
-            <Text style={styles.detailHeaderTitle}>Item Details</Text>
+            <Text style={styles.detailHeaderTitle}>{t('itemDetails')}</Text>
             <View style={{ width: 50 }} />
           </View>
 
@@ -265,7 +267,7 @@ export default function MarketplaceScreen() {
             ) : (
               <View style={[styles.noImagePlaceholder, { height: 250 }]}>  
                 <Text style={styles.noImageIcon}>{catInfo.icon}</Text>
-                <Text style={styles.noImageText}>No Photos Available</Text>
+                <Text style={styles.noImageText}>{t('noPhoto')}</Text>
               </View>
             )}
             {item.images && item.images.length > 1 && (
@@ -301,12 +303,12 @@ export default function MarketplaceScreen() {
 
               <View style={styles.divider} />
               
-              <Text style={styles.sectionLabel}>Description</Text>
+              <Text style={styles.sectionLabel}>{t('description')}</Text>
               <Text style={styles.detailDesc}>{item.description}</Text>
 
               <View style={styles.divider} />
 
-              <Text style={styles.sectionLabel}>Seller</Text>
+              <Text style={styles.sectionLabel}>{t('seller')}</Text>
               <View style={styles.sellerRow}>
                 {item.user?.photoUrl ? (
                   <Image source={{ uri: item.user.photoUrl }} style={styles.sellerAvatar} />
@@ -317,7 +319,7 @@ export default function MarketplaceScreen() {
                 )}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.sellerName}>{item.user?.name || 'Unknown'}</Text>
-                  <Text style={styles.sellerSub}>Shahkot Seller</Text>
+                  <Text style={styles.sellerSub}>{t('shahkotSeller')}</Text>
                 </View>
               </View>
 
@@ -335,14 +337,14 @@ export default function MarketplaceScreen() {
                       style={styles.markSoldBtn}
                       onPress={() => markAsSold(item.id)}
                     >
-                      <Text style={styles.markSoldText}>✅ Mark as Sold</Text>
+                      <Text style={styles.markSoldText}>✅ {t('markAsSold')}</Text>
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity
                     style={styles.deleteListingBtn}
                     onPress={() => deleteListing(item.id)}
                   >
-                    <Text style={styles.deleteListingText}>🗑️ Delete Listing</Text>
+                      <Text style={styles.deleteListingText}>🗑️ {t('deleteListing')}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -355,11 +357,11 @@ export default function MarketplaceScreen() {
               style={styles.whatsappCTAButton}
               onPress={() => openWhatsApp(item.whatsapp, item.title)}
             >
-              <Text style={styles.whatsappCTAText}>💬 Contact on WhatsApp</Text>
+              <Text style={styles.whatsappCTAText}>💬 {t('contactWhatsapp')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.callCTAButton}
-              onPress={() => Linking.openURL(`tel:${item.whatsapp}`).catch(() => Alert.alert('Error', 'Unable to call'))}
+              onPress={() => Linking.openURL(`tel:${item.whatsapp}`).catch(() => Alert.alert(t('error'), t('unableToCall')))}
             >
               <Text style={styles.callCTAText}>📞</Text>
             </TouchableOpacity>
@@ -373,9 +375,9 @@ export default function MarketplaceScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.marketHeader}>
-        <Text style={styles.marketHeaderTitle}>Buy & Sell</Text>
+        <Text style={styles.marketHeaderTitle}>{t('buySellTitle')}</Text>
         <TouchableOpacity onPress={() => setShowMyListings(!showMyListings)}>
-          <Text style={styles.myListingsBtn}>{showMyListings ? 'All Items' : 'My Listings'}</Text>
+          <Text style={styles.myListingsBtn}>{showMyListings ? t('allItems') : t('myListingsTab')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -383,7 +385,7 @@ export default function MarketplaceScreen() {
       <View style={styles.searchBar}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search items..."
+          placeholder={t('searchItems')}
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={loadListings}
@@ -432,8 +434,8 @@ export default function MarketplaceScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>🛒</Text>
-              <Text style={styles.emptyText}>No listings found</Text>
-              <Text style={styles.emptySubtext}>Be the first to sell something!</Text>
+              <Text style={styles.emptyText}>{t('noListingsFound')}</Text>
+              <Text style={styles.emptySubtext}>{t('beFirstToSell')}</Text>
             </View>
           }
           ListFooterComponent={<AdBanner />}
@@ -444,7 +446,7 @@ export default function MarketplaceScreen() {
 
       {/* Create Listing FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => setShowCreate(true)}>
-        <Text style={styles.fabText}>+ Sell</Text>
+        <Text style={styles.fabText}>{t('sellFab')}</Text>
       </TouchableOpacity>
 
       {/* Create Listing Modal */}
@@ -457,17 +459,17 @@ export default function MarketplaceScreen() {
             <TouchableOpacity onPress={() => setShowCreate(false)}>
               <Text style={styles.closeButton}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Sell Something</Text>
+            <Text style={styles.modalTitle}>{t('sellSomething')}</Text>
             <View style={{ width: 30 }} />
           </View>
 
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-            <TextInput style={styles.input} placeholder="Title *" value={title} onChangeText={setTitle} placeholderTextColor={COLORS.textLight} />
-            <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} placeholder="Description *" value={description} onChangeText={setDescription} multiline placeholderTextColor={COLORS.textLight} />
-            <TextInput style={styles.input} placeholder="Price (Rs.) *" value={price} onChangeText={setPrice} keyboardType="numeric" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={styles.input} placeholder="WhatsApp Number *" value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} placeholder={t('titleField')} value={title} onChangeText={setTitle} placeholderTextColor={COLORS.textLight} />
+            <TextInput style={[styles.input, { height: 80, textAlignVertical: 'top' }]} placeholder={t('descriptionSell')} value={description} onChangeText={setDescription} multiline placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} placeholder={t('pricePlaceholder')} value={price} onChangeText={setPrice} keyboardType="numeric" placeholderTextColor={COLORS.textLight} />
+            <TextInput style={styles.input} placeholder={t('whatsappRequired')} value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
 
-            <Text style={styles.fieldLabel}>Category</Text>
+            <Text style={styles.fieldLabel}>{t('category')}</Text>
             <FlatList
               horizontal
               data={LISTING_CATEGORIES}
@@ -488,7 +490,7 @@ export default function MarketplaceScreen() {
 
             <TouchableOpacity style={styles.imagePickBtn} onPress={pickImages}>
               <Text style={styles.imagePickIcon}>📷</Text>
-              <Text style={styles.imagePickText}>Add Photos (up to 5)</Text>
+              <Text style={styles.imagePickText}>{t('addPhotos')}</Text>
             </TouchableOpacity>
 
             {images.length > 0 && (
@@ -523,7 +525,7 @@ export default function MarketplaceScreen() {
               onPress={createListing}
               disabled={creating}
             >
-              {creating ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitText}>Post Listing</Text>}
+              {creating ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitText}>{t('postListing')}</Text>}
             </TouchableOpacity>
             <View style={{ height: 60 }} />
           </ScrollView>

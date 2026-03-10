@@ -8,9 +8,42 @@ import { COLORS, APP_NAME, GEOFENCE_RADIUS_KM } from '../config/constants';
 import { isWithinShahkot } from '../utils/geolocation';
 import { useAuth } from '../context/AuthContext';
 import { authAPI, restaurantsAPI } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
+
+// Language toggle shown at the top of each login view
+function LanguagePicker({ language, changeLanguage }) {
+  return (
+    <View style={lpStyles.row}>
+      <TouchableOpacity
+        style={[lpStyles.btn, language === 'en' && lpStyles.active]}
+        onPress={() => changeLanguage('en')}
+      >
+        <Text style={[lpStyles.txt, language === 'en' && lpStyles.activeTxt]}>English</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[lpStyles.btn, language === 'ur' && lpStyles.active]}
+        onPress={() => changeLanguage('ur')}
+      >
+        <Text style={[lpStyles.txt, language === 'ur' && lpStyles.activeTxt]}>اردو</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const lpStyles = StyleSheet.create({
+  row: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginBottom: 10 },
+  btn: {
+    paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+    borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.surface,
+  },
+  active: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  txt: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  activeTxt: { color: COLORS.white },
+});
 
 export default function LoginScreen({ navigation }) {
   const { register, login } = useAuth();
+  const { t, language, changeLanguage } = useLanguage();
 
   // mode: 'LOGIN' | 'REGISTER' | 'OTP' | 'FORGOT' | 'RESET_OTP' | 'NEW_PASSWORD'
   const [mode, setMode] = useState('LOGIN');
@@ -363,8 +396,16 @@ export default function LoginScreen({ navigation }) {
   if (locationLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <View style={{ position: 'absolute', top: 52, right: 20, flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={[lpStyles.btn, language === 'en' && lpStyles.active]} onPress={() => changeLanguage('en')}>
+            <Text style={[lpStyles.txt, language === 'en' && lpStyles.activeTxt]}>English</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[lpStyles.btn, language === 'ur' && lpStyles.active]} onPress={() => changeLanguage('ur')}>
+            <Text style={[lpStyles.txt, language === 'ur' && lpStyles.activeTxt]}>اردو</Text>
+          </TouchableOpacity>
+        </View>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={[styles.subtitle, { marginTop: 16 }]}>Checking your location...</Text>
+        <Text style={[styles.subtitle, { marginTop: 16 }]}>{t('checkingLocation')}</Text>
         <Text style={[styles.hint, { marginTop: 8, textAlign: 'center', paddingHorizontal: 40 }]}>
           This app is only available within {GEOFENCE_RADIUS_KM} KM of Shahkot city
         </Text>
@@ -376,13 +417,21 @@ export default function LoginScreen({ navigation }) {
   if (locationChecked && !locationAllowed) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center', padding: 32 }]}>
+        <View style={{ position: 'absolute', top: 52, right: 20, flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity style={[lpStyles.btn, language === 'en' && lpStyles.active]} onPress={() => changeLanguage('en')}>
+            <Text style={[lpStyles.txt, language === 'en' && lpStyles.activeTxt]}>English</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[lpStyles.btn, language === 'ur' && lpStyles.active]} onPress={() => changeLanguage('ur')}>
+            <Text style={[lpStyles.txt, language === 'ur' && lpStyles.activeTxt]}>اردو</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={{ fontSize: 60, marginBottom: 16 }}>📍</Text>
-        <Text style={[styles.title, { textAlign: 'center' }]}>Outside Shahkot</Text>
+        <Text style={[styles.title, { textAlign: 'center' }]}>{t('outsideShahkot')}</Text>
         <Text style={[styles.subtitle, { textAlign: 'center', marginTop: 8, marginBottom: 24 }]}>
-          This app is exclusively for Shahkot residents and can only be used within {GEOFENCE_RADIUS_KM} KM of Shahkot city.
+          {t('outsideShahkotMsg')} {GEOFENCE_RADIUS_KM} {t('kmOfShahkot')}
         </Text>
         <TouchableOpacity style={styles.button} onPress={checkLocation}>
-          <Text style={styles.buttonText}>🔄 Check Location Again</Text>
+          <Text style={styles.buttonText}>{t('checkLocationAgain')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -394,15 +443,18 @@ export default function LoginScreen({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Language Picker */}
+        <LanguagePicker language={language} changeLanguage={changeLanguage} />
+
         {/* Header */}
         <View style={styles.header}>
           <Image source={require('../../assets/logo.png')} style={styles.logoImage} resizeMode="contain" />
           <Text style={styles.title}>{APP_NAME}</Text>
           <Text style={styles.subtitle}>
-            {isRegister ? 'Create your account' : 'Welcome back!'}
+            {isRegister ? t('createAccount') : t('welcomeBack')}
           </Text>
           <View style={styles.locationBadge}>
-            <Text style={styles.locationBadgeText}>📍 Shahkot Community App</Text>
+            <Text style={styles.locationBadgeText}>{t('shahkotCommunity')}</Text>
           </View>
         </View>
 
@@ -410,10 +462,10 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.form}>
           {isRegister && (
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Full Name *</Text>
+              <Text style={styles.label}>{t('fullName')} *</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Enter your full name"
+                placeholder={t('enterFullName')}
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="words"
@@ -423,10 +475,10 @@ export default function LoginScreen({ navigation }) {
           )}
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email Address *</Text>
+            <Text style={styles.label}>{t('emailAddress')} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="your@gmail.com"
+              placeholder={t('enterEmail')}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -437,10 +489,10 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password *</Text>
+            <Text style={styles.label}>{t('password')} *</Text>
             <TextInput
               style={styles.input}
-              placeholder={isRegister ? 'Min 6 characters' : 'Enter your password'}
+              placeholder={isRegister ? t('minChars') : t('enterPassword')}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -453,10 +505,10 @@ export default function LoginScreen({ navigation }) {
 
           {isRegister && (
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Phone / WhatsApp (Optional)</Text>
+              <Text style={styles.label}>{t('phoneWhatsapp')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="+92 300 1234567"
+                placeholder={t('phoneFormat')}
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
@@ -475,7 +527,7 @@ export default function LoginScreen({ navigation }) {
               <ActivityIndicator color={COLORS.white} />
             ) : (
               <Text style={styles.buttonText}>
-                {isRegister ? 'Send OTP to Email' : 'Login'}
+                {isRegister ? t('sendOtp') : t('loginBtn')}
               </Text>
             )}
           </TouchableOpacity>
@@ -494,7 +546,7 @@ export default function LoginScreen({ navigation }) {
               style={[styles.switchButton, { marginTop: 8 }]}
               onPress={() => { setOtp(''); setNewPassword(''); setMode('FORGOT'); }}
             >
-              <Text style={[styles.switchText, { color: COLORS.primary }]}>Forgot Password?</Text>
+              <Text style={[styles.switchText, { color: COLORS.primary }]}>{t('forgotPassword')}</Text>
             </TouchableOpacity>
           )}
 
@@ -504,9 +556,7 @@ export default function LoginScreen({ navigation }) {
             onPress={() => { resetForm(); setMode(isRegister ? 'LOGIN' : 'REGISTER'); }}
           >
             <Text style={styles.switchText}>
-              {isRegister
-                ? 'Already have an account? Login'
-                : "Don't have an account? Register"}
+              {isRegister ? t('haveAccount') : t('noAccount')}
             </Text>
           </TouchableOpacity>
 
@@ -516,7 +566,7 @@ export default function LoginScreen({ navigation }) {
             onPress={() => navigation.navigate('PrivacyPolicy')}
           >
             <Text style={[styles.switchText, { color: COLORS.textSecondary, fontSize: 12 }]}>
-              🔒 Privacy Policy
+              {t('privacyPolicy')}
             </Text>
           </TouchableOpacity>
         </View>

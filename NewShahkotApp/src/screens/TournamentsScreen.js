@@ -6,10 +6,12 @@ import {
 import { COLORS, SPORT_TYPES } from '../config/constants';
 import { tournamentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import AdBanner from '../components/AdBanner';
 
 export default function TournamentsScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
+  const { t } = useLanguage();
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedSport, setSelectedSport] = useState(null);
@@ -43,7 +45,7 @@ export default function TournamentsScreen({ navigation }) {
 
   const deleteTournament = async (id, name) => {
     Alert.alert('Delete Tournament', `Delete "${name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('cancel'), style: 'cancel' },...
       {
         text: 'Delete',
         style: 'destructive',
@@ -89,7 +91,7 @@ export default function TournamentsScreen({ navigation }) {
       setTeams([]);
       setTeamInput('');
       loadTournaments();
-      Alert.alert('Success', 'Tournament created!');
+      Alert.alert(t('success'), t('tournamentCreated'));
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to create tournament.');
     } finally {
@@ -126,25 +128,25 @@ export default function TournamentsScreen({ navigation }) {
         {isExpanded && (
           <View style={styles.expandedContent}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>📍 Venue</Text>
+              <Text style={styles.infoLabel}>{t('venue')}</Text>
               <Text style={styles.infoValue}>{item.venue}</Text>
             </View>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>📅 Start</Text>
+              <Text style={styles.infoLabel}>{t('startDate')}</Text>
               <Text style={styles.infoValue}>
                 {new Date(item.startDate).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
               </Text>
             </View>
             {item.endDate && (
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>📅 End</Text>
+                <Text style={styles.infoLabel}>{t('endDate')}</Text>
                 <Text style={styles.infoValue}>
                   {new Date(item.endDate).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </Text>
               </View>
             )}
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>🏏 Matches</Text>
+              <Text style={styles.infoLabel}>{t('matches')}</Text>
               <Text style={styles.infoValue}>{item._count?.matches || 0}</Text>
             </View>
             {item.description && (
@@ -155,7 +157,7 @@ export default function TournamentsScreen({ navigation }) {
                 style={styles.detailBtn}
                 onPress={() => navigation.navigate('TournamentDetail', { id: item.id })}
               >
-                <Text style={styles.detailBtnText}>View Matches</Text>
+                <Text style={styles.detailBtnText}>{t('viewMatches')}</Text>
               </TouchableOpacity>
               {canDelete && (
                 <TouchableOpacity
@@ -176,9 +178,9 @@ export default function TournamentsScreen({ navigation }) {
     <View style={styles.container}>
       {/* Top Bar */}
       <View style={styles.topBar}>
-        <Text style={styles.pageTitle}>🏆 Tournaments</Text>
+        <Text style={styles.pageTitle}>{t('tournamentsTitle')}</Text>
         <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreate(true)}>
-          <Text style={styles.createBtnText}>+ Create</Text>
+          <Text style={styles.createBtnText}>{t('createTournament')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -211,9 +213,9 @@ export default function TournamentsScreen({ navigation }) {
           !loading && (
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>🏆</Text>
-              <Text style={styles.emptyText}>No tournaments scheduled yet</Text>
+              <Text style={styles.emptyText}>{t('noTournaments')}</Text>
               <TouchableOpacity style={styles.createBtn} onPress={() => setShowCreate(true)}>
-                <Text style={styles.createBtnText}>+ Create First Tournament</Text>
+                <Text style={styles.createBtnText}>{t('createFirst')}</Text>
               </TouchableOpacity>
             </View>
           )
@@ -225,12 +227,12 @@ export default function TournamentsScreen({ navigation }) {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={styles.modalTitle}>🏆 Create Tournament</Text>
+              <Text style={styles.modalTitle}>{t('createTournamentTitle')}</Text>
 
-              <Text style={styles.label}>Name *</Text>
-              <TextInput style={styles.input} value={form.name} onChangeText={t => setForm({ ...form, name: t })} placeholder="Tournament name" />
+              <Text style={styles.label}>{t('tournamentName')}</Text>
+              <TextInput style={styles.input} value={form.name} onChangeText={s => setForm({ ...form, name: s })} placeholder={t('tournamentNamePlaceholder')} />
 
-              <Text style={styles.label}>Sport *</Text>
+              <Text style={styles.label}>{t('sportField')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
                 {SPORT_TYPES.map(s => (
                   <TouchableOpacity key={s.key} onPress={() => setForm({ ...form, sport: s.key })}
@@ -240,35 +242,35 @@ export default function TournamentsScreen({ navigation }) {
                 ))}
               </ScrollView>
 
-              <Text style={styles.label}>Description *</Text>
+              <Text style={styles.label}>{t('tournamentDesc')}</Text>
               <TextInput style={[styles.input, { height: 60, textAlignVertical: 'top' }]} value={form.description}
-                onChangeText={t => setForm({ ...form, description: t })} placeholder="About the tournament" multiline />
+                onChangeText={s => setForm({ ...form, description: s })} placeholder={t('tournamentDescPlaceholder')} multiline />
 
-              <Text style={styles.label}>Venue / Location *</Text>
-              <TextInput style={styles.input} value={form.venue} onChangeText={t => setForm({ ...form, venue: t })} placeholder="e.g. Shahkot Cricket Ground" />
+              <Text style={styles.label}>{t('venue')} *</Text>
+              <TextInput style={styles.input} value={form.venue} onChangeText={s => setForm({ ...form, venue: s })} placeholder={t('venuePlaceholder')} />
 
-              <Text style={styles.label}>Start Date * (YYYY-MM-DD)</Text>
-              <TextInput style={styles.input} value={form.startDate} onChangeText={t => setForm({ ...form, startDate: t })} placeholder="2026-03-15" keyboardType="numbers-and-punctuation" />
+              <Text style={styles.label}>{t('startDateField')}</Text>
+              <TextInput style={styles.input} value={form.startDate} onChangeText={s => setForm({ ...form, startDate: s })} placeholder="2026-03-15" keyboardType="numbers-and-punctuation" />
 
-              <Text style={styles.label}>End Date (optional)</Text>
-              <TextInput style={styles.input} value={form.endDate} onChangeText={t => setForm({ ...form, endDate: t })} placeholder="2026-04-01" keyboardType="numbers-and-punctuation" />
+              <Text style={styles.label}>{t('endDateField')}</Text>
+              <TextInput style={styles.input} value={form.endDate} onChangeText={s => setForm({ ...form, endDate: s })} placeholder="2026-04-01" keyboardType="numbers-and-punctuation" />
 
-              <Text style={styles.label}>Prize (optional)</Text>
-              <TextInput style={styles.input} value={form.prize} onChangeText={t => setForm({ ...form, prize: t })} placeholder="e.g. PKR 50,000 trophy" />
+              <Text style={styles.label}>{t('prizeField')}</Text>
+              <TextInput style={styles.input} value={form.prize} onChangeText={s => setForm({ ...form, prize: s })} placeholder={t('prizePlaceholder')} />
 
-              <Text style={styles.label}>Entry Fee PKR (optional)</Text>
-              <TextInput style={styles.input} value={form.entryFee} onChangeText={t => setForm({ ...form, entryFee: t })} placeholder="0 for free" keyboardType="numeric" />
+              <Text style={styles.label}>{t('entryFee')}</Text>
+              <TextInput style={styles.input} value={form.entryFee} onChangeText={s => setForm({ ...form, entryFee: s })} placeholder={t('entryFeePlaceholder')} keyboardType="numeric" />
 
-              <Text style={styles.label}>Contact Number (optional)</Text>
-              <TextInput style={styles.input} value={form.contactNumber} onChangeText={t => setForm({ ...form, contactNumber: t })} placeholder="+923001234567" keyboardType="phone-pad" />
+              <Text style={styles.label}>{t('contactOptional')}</Text>
+              <TextInput style={styles.input} value={form.contactNumber} onChangeText={s => setForm({ ...form, contactNumber: s })} placeholder="+923001234567" keyboardType="phone-pad" />
 
               {/* Teams */}
-              <Text style={styles.label}>Team Names (optional)</Text>
+              <Text style={styles.label}>{t('teamNames')}</Text>
               <View style={styles.teamInputRow}>
                 <TextInput style={[styles.input, { flex: 1, marginBottom: 0 }]} value={teamInput}
-                  onChangeText={setTeamInput} placeholder="Add team name" />
+                  onChangeText={setTeamInput} placeholder={t('addTeamName')} />
                 <TouchableOpacity style={styles.addTeamBtn} onPress={addTeam}>
-                  <Text style={styles.addTeamBtnText}>+ Add</Text>
+                  <Text style={styles.addTeamBtnText}>+ {t('add')}</Text>
                 </TouchableOpacity>
               </View>
               {teams.map((t, i) => (
@@ -282,10 +284,10 @@ export default function TournamentsScreen({ navigation }) {
 
               <View style={styles.modalActions}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCreate(false)}>
-                  <Text style={styles.cancelText}>Cancel</Text>
+                  <Text style={styles.cancelText}>{t('cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.submitBtn} onPress={handleCreate} disabled={creating}>
-                  <Text style={styles.submitText}>{creating ? 'Creating...' : 'Create'}</Text>
+                  <Text style={styles.submitText}>{creating ? t('creating') : t('createTournament')}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>

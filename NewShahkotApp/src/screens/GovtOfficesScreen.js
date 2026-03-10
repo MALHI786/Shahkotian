@@ -4,6 +4,7 @@ import {
   StyleSheet, Linking, Alert,
 } from 'react-native';
 import { COLORS } from '../config/constants';
+import { useLanguage } from '../context/LanguageContext';
 
 // Complete Punjab Government Helplines
 const PUNJAB_HELPLINES = [
@@ -62,6 +63,7 @@ const PUNJAB_HELPLINES = [
 const CATEGORIES = ['All', 'Emergency', 'Police', 'Protection', 'Health', 'Utility', 'Government', 'Transport'];
 
 export default function GovtOfficesScreen({ navigation }) {
+  const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('All');
 
@@ -77,7 +79,7 @@ export default function GovtOfficesScreen({ navigation }) {
 
   const callNumber = (number) => {
     Linking.openURL(`tel:${number}`).catch(() =>
-      Alert.alert('Error', 'Unable to make a call from this device')
+      Alert.alert(t('error'), t('unableToCall'))
     );
   };
 
@@ -86,9 +88,9 @@ export default function GovtOfficesScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>{'<'} Back</Text>
+          <Text style={styles.backBtn}>{'<'} {t('back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>📞 Punjab Helplines</Text>
+        <Text style={styles.headerTitle}>{t('govtTitle')}</Text>
         <View style={{ width: 50 }} />
       </View>
 
@@ -96,8 +98,8 @@ export default function GovtOfficesScreen({ navigation }) {
       <TouchableOpacity style={styles.emergencyBanner} onPress={() => callNumber('1122')}>
         <Text style={styles.emergencyIcon}>🚨</Text>
         <View style={{ flex: 1 }}>
-          <Text style={styles.emergencyTitle}>Emergency? Call 1122</Text>
-          <Text style={styles.emergencyDesc}>Rescue Punjab • Ambulance • Fire • Rescue</Text>
+          <Text style={styles.emergencyTitle}>{t('emergencyCall')}</Text>
+          <Text style={styles.emergencyDesc}>{t('rescueHealth')}</Text>
         </View>
         <View style={styles.callIconContainer}>
           <Text style={styles.callIcon}>📞</Text>
@@ -108,7 +110,7 @@ export default function GovtOfficesScreen({ navigation }) {
       <View style={styles.searchRow}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search helpline by name or number..."
+          placeholder={t('searchHelpline')}
           value={search}
           onChangeText={setSearch}
           placeholderTextColor={COLORS.textLight}
@@ -135,7 +137,7 @@ export default function GovtOfficesScreen({ navigation }) {
 
       {/* Count badge */}
       <View style={styles.countRow}>
-        <Text style={styles.countText}>{filtered.length} helplines available</Text>
+        <Text style={styles.countText}>{filtered.length} {t('helplinesAvailable')}</Text>
       </View>
 
       {/* Helplines list - Compact 2-column grid */}
@@ -161,7 +163,7 @@ export default function GovtOfficesScreen({ navigation }) {
         ListEmptyComponent={
           <View style={{ alignItems: 'center', paddingVertical: 40 }}>
             <Text style={{ fontSize: 40, marginBottom: 8 }}>🔍</Text>
-            <Text style={{ color: COLORS.textLight }}>No helplines found</Text>
+            <Text style={{ color: COLORS.textLight }}>{t('noHelplinesFound')}</Text>
           </View>
         }
       />

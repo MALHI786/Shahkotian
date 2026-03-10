@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl, TouchableOpacity,
 } from 'react-native';
 import { COLORS, SHAHKOT_CENTER } from '../config/constants';
+import { useLanguage } from '../context/LanguageContext';
 
 // Weather condition codes mapping
 const getWeatherInfo = (code) => {
@@ -47,6 +48,7 @@ const getHourLabel = (timeStr) => {
 };
 
 export default function WeatherScreen({ navigation }) {
+  const { t } = useLanguage();
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,7 +77,7 @@ export default function WeatherScreen({ navigation }) {
       setWeather(data);
     } catch (err) {
       console.error('Weather fetch error:', err);
-      setError('Failed to load weather. Please try again.');
+      setError(t('weatherError') || 'Failed to load weather. Please try again.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -107,14 +109,14 @@ export default function WeatherScreen({ navigation }) {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtn}>{'<'} Back</Text>
+            <Text style={styles.backBtn}>{'<'} {t('back')}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Shahkot Weather</Text>
+          <Text style={styles.headerTitle}>{t('shahkotWeather')}</Text>
           <View style={{ width: 50 }} />
         </View>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#fff" />
-          <Text style={styles.loadingText}>Loading weather...</Text>
+          <Text style={styles.loadingText}>{t('loadingWeather')}</Text>
         </View>
       </View>
     );
@@ -125,16 +127,16 @@ export default function WeatherScreen({ navigation }) {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtn}>{'<'} Back</Text>
+            <Text style={styles.backBtn}>{'<'} {t('back')}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Shahkot Weather</Text>
+          <Text style={styles.headerTitle}>{t('shahkotWeather')}</Text>
           <View style={{ width: 50 }} />
         </View>
         <View style={styles.center}>
           <Text style={styles.errorIcon}>⚠️</Text>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={fetchWeather}>
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>{t('retry') || 'Retry'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -149,9 +151,9 @@ export default function WeatherScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>{'<'} Back</Text>
+          <Text style={styles.backBtn}>{'<'} {t('back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Shahkot Weather</Text>
+        <Text style={styles.headerTitle}>{t('shahkotWeather')}</Text>
         <TouchableOpacity onPress={() => { setRefreshing(true); fetchWeather(); }}>
           <Text style={styles.refreshBtn}>🔄</Text>
         </TouchableOpacity>
@@ -164,31 +166,31 @@ export default function WeatherScreen({ navigation }) {
         {/* Location */}
         <View style={styles.locationBar}>
           <Text style={styles.locationIcon}>📍</Text>
-          <Text style={styles.locationText}>Shahkot, Nankana Sahib, Punjab</Text>
+          <Text style={styles.locationText}>{t('weatherLocation')}</Text>
         </View>
 
         {/* Current Weather */}
         <View style={styles.currentCard}>
           <Text style={styles.currentIcon}>{currentWeather.icon}</Text>
           <Text style={styles.currentTemp}>{Math.round(weather?.current?.temperature_2m)}°C</Text>
-          <Text style={styles.feelsLike}>Feels like {Math.round(weather?.current?.apparent_temperature || weather?.current?.temperature_2m)}°C</Text>
+          <Text style={styles.feelsLike}>{t('feelsLike')}{Math.round(weather?.current?.apparent_temperature || weather?.current?.temperature_2m)}°C</Text>
           <Text style={styles.currentDesc}>{currentWeather.desc}</Text>
           
           <View style={styles.currentDetails}>
             <View style={styles.detailItem}>
               <Text style={styles.detailIcon}>💧</Text>
               <Text style={styles.detailValue}>{weather?.current?.relative_humidity_2m}%</Text>
-              <Text style={styles.detailLabel}>Humidity</Text>
+              <Text style={styles.detailLabel}>{t('humidity')}</Text>
             </View>
             <View style={styles.detailItem}>
               <Text style={styles.detailIcon}>💨</Text>
               <Text style={styles.detailValue}>{Math.round(weather?.current?.wind_speed_10m)} km/h</Text>
-              <Text style={styles.detailLabel}>Wind</Text>
+              <Text style={styles.detailLabel}>{t('wind')}</Text>
             </View>
             <View style={styles.detailItem}>
               <Text style={styles.detailIcon}>🌡️</Text>
               <Text style={styles.detailValue}>{Math.round(weather?.current?.pressure_msl || 0)} hPa</Text>
-              <Text style={styles.detailLabel}>Pressure</Text>
+              <Text style={styles.detailLabel}>{t('pressure')}</Text>
             </View>
             <View style={styles.detailItem}>
               <Text style={styles.detailIcon}>☀️</Text>
@@ -203,7 +205,7 @@ export default function WeatherScreen({ navigation }) {
           <View style={styles.sunCard}>
             <View style={styles.sunItem}>
               <Text style={styles.sunIcon}>🌅</Text>
-              <Text style={styles.sunLabel}>Sunrise</Text>
+              <Text style={styles.sunLabel}>{t('sunrise')}</Text>
               <Text style={styles.sunValue}>
                 {new Date(weather.daily.sunrise[0]).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true })}
               </Text>
@@ -211,7 +213,7 @@ export default function WeatherScreen({ navigation }) {
             <View style={styles.sunDivider} />
             <View style={styles.sunItem}>
               <Text style={styles.sunIcon}>🌇</Text>
-              <Text style={styles.sunLabel}>Sunset</Text>
+              <Text style={styles.sunLabel}>{t('sunset')}</Text>
               <Text style={styles.sunValue}>
                 {new Date(weather.daily.sunset[0]).toLocaleTimeString('en-PK', { hour: '2-digit', minute: '2-digit', hour12: true })}
               </Text>

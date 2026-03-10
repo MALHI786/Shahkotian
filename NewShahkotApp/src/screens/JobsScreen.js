@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, JOB_CATEGORIES, JOB_TYPES } from '../config/constants';
 import { jobsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import SkeletonLoader from '../components/SkeletonLoader';
 import AdBanner from '../components/AdBanner';
 
@@ -16,6 +17,7 @@ const getTypeLabel = (key) => JOB_TYPES.find(t => t.key === key)?.label || key;
 
 export default function JobsScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,13 +89,13 @@ export default function JobsScreen({ navigation }) {
 
   const postJob = async () => {
     if (!form.title || !form.company || !form.description || !form.phone) {
-      Alert.alert('Required', 'Please fill title, company, description, and phone.');
+      Alert.alert(t('required'), 'Please fill title, company, description, and phone.');
       return;
     }
     setSaving(true);
     try {
       await jobsAPI.create(form);
-      Alert.alert('Posted!', 'Your job has been posted successfully.');
+      Alert.alert(t('success'), t('jobPosted'));
       setShowPostModal(false);
       resetForm();
       loadJobs();
@@ -105,14 +107,14 @@ export default function JobsScreen({ navigation }) {
   };
 
   const deleteJob = (id) => {
-    Alert.alert('Delete Job', 'Remove this job posting?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('deleteJob'), 'Remove this job posting?', [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive',
+        text: t('delete'), style: 'destructive',
         onPress: async () => {
           try {
             await jobsAPI.delete(id);
-            Alert.alert('Deleted');
+            Alert.alert(t('jobDeleted'));
             setSelectedJob(null);
             setShowDetailModal(false);
             loadJobs();
@@ -125,13 +127,13 @@ export default function JobsScreen({ navigation }) {
 
   const applyToJob = async () => {
     if (!applyPhone) {
-      Alert.alert('Required', 'Phone number is required.');
+      Alert.alert(t('required'), 'Phone number is required.');
       return;
     }
     setApplying(true);
     try {
       await jobsAPI.apply(selectedJob.id, { phone: applyPhone, message: applyMessage });
-      Alert.alert('Applied! ✅', 'Your application has been submitted.');
+      Alert.alert(t('success'), t('applied'));
       setShowApplyModal(false);
       setApplyPhone('');
       setApplyMessage('');
@@ -192,7 +194,7 @@ export default function JobsScreen({ navigation }) {
             {new Date(item.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short' })}
           </Text>
           <Text style={styles.applicantCount}>
-            {item._count?.applications || 0} applicants
+            {item._count?.applications || 0} {t('applicants')}
           </Text>
         </View>
       </TouchableOpacity>
@@ -210,9 +212,9 @@ export default function JobsScreen({ navigation }) {
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowDetailModal(false)} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="chevron-back" size={22} color={COLORS.white} />
-              <Text style={styles.backBtn}>Back</Text>
+              <Text style={styles.backBtn}>{t('back')}</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Job Details</Text>
+            <Text style={styles.modalTitle}>{t('jobDetails')}</Text>
             <View style={{ width: 60 }} />
           </View>
           <ScrollView style={{ flex: 1, padding: 20 }}>
@@ -231,7 +233,7 @@ export default function JobsScreen({ navigation }) {
             {selectedJob.salary && (
               <View style={styles.detailRow}>
                 <Ionicons name="cash-outline" size={18} color={COLORS.primary} />
-                <Text style={styles.detailRowText}>Salary: {selectedJob.salary}</Text>
+                <Text style={styles.detailRowText}>{t('salary')}{selectedJob.salary}</Text>
               </View>
             )}
             <View style={styles.detailRow}>
@@ -244,28 +246,28 @@ export default function JobsScreen({ navigation }) {
             </View>
 
             <View style={styles.divider} />
-            <Text style={styles.sectionLabel}>Description</Text>
+            <Text style={styles.sectionLabel}>{t('description')}</Text>
             <Text style={styles.descText}>{selectedJob.description}</Text>
 
             {selectedJob.requirements && (
               <>
-                <Text style={styles.sectionLabel}>Requirements</Text>
+                <Text style={styles.sectionLabel}>{t('requirements')}</Text>
                 <Text style={styles.descText}>{selectedJob.requirements}</Text>
               </>
             )}
 
             <Text style={styles.postedBy}>
-              Posted by {selectedJob.user?.name || 'Unknown'} • {new Date(selectedJob.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
+              {t('postedBy')}{selectedJob.user?.name || 'Unknown'} • {new Date(selectedJob.createdAt).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
             </Text>
 
             {isOwner && (
               <>
                 <View style={styles.divider} />
-                <Text style={styles.sectionLabel}>Applicants ({applicants.length})</Text>
+                <Text style={styles.sectionLabel}>{t('applicantsSection')}{applicants.length})</Text>
                 {loadingApplicants ? (
                   <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 12 }} />
                 ) : applicants.length === 0 ? (
-                  <Text style={[styles.descText, { color: COLORS.textLight, textAlign: 'center', marginVertical: 12 }]}>No applicants yet</Text>
+                  <Text style={[styles.descText, { color: COLORS.textLight, textAlign: 'center', marginVertical: 12 }]}>{t('noApplicantsYet')}</Text>
                 ) : (
                   applicants.map((app) => (
                     <View key={app.id} style={styles.applicantCard}>
@@ -289,7 +291,7 @@ export default function JobsScreen({ navigation }) {
             {isOwner && (
               <TouchableOpacity style={styles.deleteJobBtn} onPress={() => deleteJob(selectedJob.id)}>
                 <Ionicons name="trash-outline" size={18} color="#F44336" />
-                <Text style={styles.deleteJobText}>Delete Job</Text>
+                <Text style={styles.deleteJobText}>{t('deleteJob')}</Text>
               </TouchableOpacity>
             )}
             <View style={{ height: 30 }} />
@@ -299,17 +301,17 @@ export default function JobsScreen({ navigation }) {
             <View style={styles.detailCTA}>
               <TouchableOpacity style={styles.callCTABtn} onPress={() => callNumber(selectedJob.phone)}>
                 <Ionicons name="call" size={18} color={COLORS.white} />
-                <Text style={styles.ctaText}>Call</Text>
+                <Text style={styles.ctaText}>{t('call')}</Text>
               </TouchableOpacity>
               {selectedJob.whatsapp && (
                 <TouchableOpacity style={styles.waCTABtn} onPress={() => whatsappNumber(selectedJob.whatsapp || selectedJob.phone, selectedJob.title)}>
                   <Ionicons name="logo-whatsapp" size={18} color={COLORS.white} />
-                  <Text style={styles.ctaText}>WhatsApp</Text>
+                  <Text style={styles.ctaText}>{t('whatsappBtn')}</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity style={styles.applyCTABtn} onPress={() => { setApplyPhone(user?.phone || ''); setShowApplyModal(true); }}>
                 <Ionicons name="paper-plane" size={18} color={COLORS.white} />
-                <Text style={styles.ctaText}>Apply</Text>
+                <Text style={styles.ctaText}>{t('applyJob')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -319,17 +321,17 @@ export default function JobsScreen({ navigation }) {
         <Modal visible={showApplyModal} transparent animationType="slide">
           <View style={styles.overlayBg}>
             <View style={styles.applySheet}>
-              <Text style={styles.applyTitle}>Apply for this Job</Text>
-              <Text style={styles.fieldLabel}>Your Phone *</Text>
+              <Text style={styles.applyTitle}>{t('applyForJob')}</Text>
+              <Text style={styles.fieldLabel}>{t('yourPhone')}</Text>
               <TextInput style={styles.input} placeholder="Phone number" value={applyPhone} onChangeText={setApplyPhone} keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
-              <Text style={styles.fieldLabel}>Message (optional)</Text>
-              <TextInput style={[styles.input, { height: 80 }]} placeholder="Tell them about yourself..." value={applyMessage} onChangeText={setApplyMessage} multiline placeholderTextColor={COLORS.textLight} />
+              <Text style={styles.fieldLabel}>{t('message')}</Text>
+              <TextInput style={[styles.input, { height: 80 }]} placeholder={t('messageHint')} value={applyMessage} onChangeText={setApplyMessage} multiline placeholderTextColor={COLORS.textLight} />
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowApplyModal(false)}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                  <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.submitBtn, applying && { opacity: 0.6 }]} onPress={applyToJob} disabled={applying}>
-                  {applying ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitBtnText}>Submit Application</Text>}
+                  {applying ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitBtnText}>{t('submitApplication')}</Text>}}
                 </TouchableOpacity>
               </View>
             </View>
@@ -346,17 +348,17 @@ export default function JobsScreen({ navigation }) {
           <TouchableOpacity onPress={() => setShowPostModal(false)}>
             <Text style={styles.closeBtn}>✕</Text>
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>Post a Job</Text>
+          <Text style={styles.modalTitle}>{t('postAJob')}</Text>
           <View style={{ width: 30 }} />
         </View>
         <ScrollView style={{ flex: 1, padding: 20 }} keyboardShouldPersistTaps="handled">
-          <Text style={styles.fieldLabel}>Job Title *</Text>
-          <TextInput style={styles.input} placeholder="e.g. Accountant, Driver" value={form.title} onChangeText={v => setForm({ ...form, title: v })} placeholderTextColor={COLORS.textLight} />
+          <Text style={styles.fieldLabel}>{t('jobTitle')}</Text>
+          <TextInput style={styles.input} placeholder={t('jobTitlePlaceholder')} value={form.title} onChangeText={v => setForm({ ...form, title: v })} placeholderTextColor={COLORS.textLight} />
 
-          <Text style={styles.fieldLabel}>Company / Business Name *</Text>
-          <TextInput style={styles.input} placeholder="e.g. Ali Traders" value={form.company} onChangeText={v => setForm({ ...form, company: v })} placeholderTextColor={COLORS.textLight} />
+          <Text style={styles.fieldLabel}>{t('companyName')}</Text>
+          <TextInput style={styles.input} placeholder={t('companyPlaceholder')} value={form.company} onChangeText={v => setForm({ ...form, company: v })} placeholderTextColor={COLORS.textLight} />
 
-          <Text style={styles.fieldLabel}>Category *</Text>
+          <Text style={styles.fieldLabel}>{t('category')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
             {JOB_CATEGORIES.map(cat => (
               <TouchableOpacity key={cat.key} style={[styles.chipBtn, form.category === cat.key && styles.chipActive]} onPress={() => setForm({ ...form, category: cat.key })}>
@@ -366,7 +368,7 @@ export default function JobsScreen({ navigation }) {
             ))}
           </ScrollView>
 
-          <Text style={styles.fieldLabel}>Job Type</Text>
+          <Text style={styles.fieldLabel}>{t('jobType')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
             {JOB_TYPES.map(t => (
               <TouchableOpacity key={t.key} style={[styles.chipBtn, form.type === t.key && styles.chipActive]} onPress={() => setForm({ ...form, type: t.key })}>
@@ -375,26 +377,26 @@ export default function JobsScreen({ navigation }) {
             ))}
           </ScrollView>
 
-          <Text style={styles.fieldLabel}>Description *</Text>
-          <TextInput style={[styles.input, { height: 100 }]} placeholder="Job details, responsibilities..." value={form.description} onChangeText={v => setForm({ ...form, description: v })} multiline placeholderTextColor={COLORS.textLight} />
+          <Text style={styles.fieldLabel}>{t('jobDescription')}</Text>
+          <TextInput style={[styles.input, { height: 100 }]} placeholder={t('jobDescPlaceholder')} value={form.description} onChangeText={v => setForm({ ...form, description: v })} multiline placeholderTextColor={COLORS.textLight} />
 
-          <Text style={styles.fieldLabel}>Salary</Text>
-          <TextInput style={styles.input} placeholder="e.g. 20,000 - 30,000 PKR or Negotiable" value={form.salary} onChangeText={v => setForm({ ...form, salary: v })} placeholderTextColor={COLORS.textLight} />
+          <Text style={styles.fieldLabel}>{t('jobSalary')}</Text>
+          <TextInput style={styles.input} placeholder={t('salaryPlaceholder')} value={form.salary} onChangeText={v => setForm({ ...form, salary: v })} placeholderTextColor={COLORS.textLight} />
 
-          <Text style={styles.fieldLabel}>Location</Text>
-          <TextInput style={styles.input} placeholder="e.g. Shahkot" value={form.location} onChangeText={v => setForm({ ...form, location: v })} placeholderTextColor={COLORS.textLight} />
+          <Text style={styles.fieldLabel}>{t('jobLocation')}</Text>
+          <TextInput style={styles.input} placeholder={t('locationPlaceholder')} value={form.location} onChangeText={v => setForm({ ...form, location: v })} placeholderTextColor={COLORS.textLight} />
 
-          <Text style={styles.fieldLabel}>Contact Phone *</Text>
+          <Text style={styles.fieldLabel}>{t('contactPhone')}</Text>
           <TextInput style={styles.input} placeholder="Phone number" value={form.phone} onChangeText={v => setForm({ ...form, phone: v })} keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
 
-          <Text style={styles.fieldLabel}>WhatsApp</Text>
-          <TextInput style={styles.input} placeholder="WhatsApp number (if different)" value={form.whatsapp} onChangeText={v => setForm({ ...form, whatsapp: v })} keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
+          <Text style={styles.fieldLabel}>{t('whatsappBtn')}</Text>
+          <TextInput style={styles.input} placeholder={t('whatsappDifferent')} value={form.whatsapp} onChangeText={v => setForm({ ...form, whatsapp: v })} keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
 
-          <Text style={styles.fieldLabel}>Requirements</Text>
-          <TextInput style={[styles.input, { height: 80 }]} placeholder="Education, experience, skills..." value={form.requirements} onChangeText={v => setForm({ ...form, requirements: v })} multiline placeholderTextColor={COLORS.textLight} />
+          <Text style={styles.fieldLabel}>{t('jobRequirements')}</Text>
+          <TextInput style={[styles.input, { height: 80 }]} placeholder={t('requirementsPlaceholder')} value={form.requirements} onChangeText={v => setForm({ ...form, requirements: v })} multiline placeholderTextColor={COLORS.textLight} />
 
           <TouchableOpacity style={[styles.postBtn, saving && { opacity: 0.6 }]} onPress={postJob} disabled={saving}>
-            {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.postBtnText}>Post Job</Text>}
+            {saving ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.postBtnText}>{t('postJobBtn')}</Text>}}
           </TouchableOpacity>
           <View style={{ height: 40 }} />
         </ScrollView>
@@ -408,15 +410,15 @@ export default function JobsScreen({ navigation }) {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Ionicons name="chevron-back" size={22} color={COLORS.white} />
-          <Text style={styles.headerBack}>Back</Text>
+          <Text style={styles.headerBack}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Jobs</Text>
+        <Text style={styles.headerTitle}>{t('jobsTitle')}</Text>
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <TouchableOpacity onPress={() => { setShowMyJobs(!showMyJobs); if (!showMyJobs) loadMyJobs(); }}>
-            <Text style={styles.headerBtn}>{showMyJobs ? 'Browse' : 'My Jobs'}</Text>
+            <Text style={styles.headerBtn}>{showMyJobs ? t('browse') : t('myJobs')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setShowPostModal(true)}>
-            <Text style={styles.headerBtn}>+ Post</Text>
+            <Text style={styles.headerBtn}>{t('postJob2')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -426,7 +428,7 @@ export default function JobsScreen({ navigation }) {
         <Ionicons name="search" size={18} color={COLORS.textLight} style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search jobs..."
+          placeholder={t('searchJobs')}
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={loadJobs}
@@ -471,8 +473,8 @@ export default function JobsScreen({ navigation }) {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="briefcase-outline" size={56} color={COLORS.textLight} />
-              <Text style={styles.emptyText}>{showMyJobs ? 'No jobs posted yet' : 'No jobs found'}</Text>
-              <Text style={styles.emptySubtext}>{showMyJobs ? 'Post your first job using the + Post button' : 'Try a different search or category'}</Text>
+              <Text style={styles.emptyText}>{showMyJobs ? t('noJobsPosted') : t('noJobsFound')}</Text>
+              <Text style={styles.emptySubtext}>{showMyJobs ? t('postFirstJob') : t('tryOtherSearch')}</Text>
             </View>
           }
         />

@@ -8,10 +8,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, DOCTOR_SPECIALTIES } from '../config/constants';
 import { doctorsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import AdBanner from '../components/AdBanner';
 
 export default function DoctorsScreen({ navigation }) {
   const { isAdmin } = useAuth();
+  const { t } = useLanguage();
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,13 +93,13 @@ export default function DoctorsScreen({ navigation }) {
 
   const saveDoctor = async () => {
     if (!form.name.trim() || !form.address.trim() || !form.phone.trim()) {
-      Alert.alert('Required', 'Name, Address, and Phone are required');
+      Alert.alert(t('required'), 'Name, Address, and Phone are required');
       return;
     }
     try {
       setSaving(true);
       await doctorsAPI.create(form);
-      Alert.alert('Success', 'Doctor added successfully!');
+      Alert.alert(t('success'), t('doctorAdded'));
       setShowAddModal(false);
       resetForm();
       loadDoctors();
@@ -109,17 +111,17 @@ export default function DoctorsScreen({ navigation }) {
   };
 
   const deleteDoctor = (id) => {
-    Alert.alert('Delete Doctor', 'Are you sure you want to delete this record?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert('Delete Doctor', t('deleteDoctor'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await doctorsAPI.delete(id);
             setSelectedDoctor(null);
             loadDoctors();
-            Alert.alert('Deleted', 'Doctor record removed.');
+            Alert.alert(t('success'), t('doctorDeleted'));
           } catch (error) {
             Alert.alert('Error', 'Failed to delete doctor');
           }
@@ -167,13 +169,13 @@ export default function DoctorsScreen({ navigation }) {
 
         <View style={styles.contactRow}>
           <TouchableOpacity style={styles.callButton} onPress={() => callDoctor(item.phone)}>
-            <Text style={styles.callText}>📞 Call</Text>
+            <Text style={styles.callText}>📞 {t('call')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.whatsappButton}
             onPress={() => whatsappDoctor(item.whatsapp || item.phone, item.name)}
           >
-            <Text style={styles.whatsappText}>💬 WhatsApp</Text>
+            <Text style={styles.whatsappText}>💬 {t('whatsappBtn')}</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -191,9 +193,9 @@ export default function DoctorsScreen({ navigation }) {
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setSelectedDoctor(null)} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <Ionicons name="chevron-back" size={22} color={COLORS.white} />
-              <Text style={styles.backBtn}>Back</Text>
+              <Text style={styles.backBtn}>{t('back')}</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Doctor Details</Text>
+            <Text style={styles.modalTitle}>{t('doctorDetails')}</Text>
             <View style={{ width: 50 }} />
           </View>
 
@@ -207,7 +209,7 @@ export default function DoctorsScreen({ navigation }) {
                 <Text style={styles.detailName}>Dr. {item.name}</Text>
                 {item.isVerified && (
                   <View style={styles.verifiedTag}>
-                    <Text style={styles.verifiedTagText}>✓ Verified</Text>
+                    <Text style={styles.verifiedTagText}>{t('verified')}</Text>
                   </View>
                 )}
               </View>
@@ -219,33 +221,33 @@ export default function DoctorsScreen({ navigation }) {
               )}
 
               {item.experience && (
-                <Text style={styles.detailExperience}>📅 {item.experience} experience</Text>
+                <Text style={styles.detailExperience}>📅 {item.experience} {t('experience')}</Text>
               )}
 
               <View style={styles.divider} />
 
               {item.clinicName && (
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Clinic</Text>
+                  <Text style={styles.detailLabel}>{t('clinic')}</Text>
                   <Text style={styles.detailValue}>{item.clinicName}</Text>
                 </View>
               )}
 
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Address</Text>
+                <Text style={styles.detailLabel}>{t('address')}</Text>
                 <Text style={styles.detailValue}>{item.address}</Text>
               </View>
 
               {item.timings && (
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Timings</Text>
+                  <Text style={styles.detailLabel}>{t('timings')}</Text>
                   <Text style={styles.detailValue}>{item.timings}</Text>
                 </View>
               )}
 
               {item.fee && (
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Consultation Fee</Text>
+                  <Text style={styles.detailLabel}>{t('consultationFee')}</Text>
                   <Text style={[styles.detailValue, { color: COLORS.primary, fontWeight: '700' }]}>
                     Rs. {item.fee}
                   </Text>
@@ -262,7 +264,7 @@ export default function DoctorsScreen({ navigation }) {
                   style={styles.deleteBtn}
                   onPress={() => deleteDoctor(item.id)}
                 >
-                  <Text style={styles.deleteBtnText}>🗑️ Delete Record</Text>
+                  <Text style={styles.deleteBtnText}>{t('deleteRecord')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -273,13 +275,13 @@ export default function DoctorsScreen({ navigation }) {
               style={styles.callCTAButton}
               onPress={() => callDoctor(item.phone)}
             >
-              <Text style={styles.callCTAText}>📞 Call Now</Text>
+              <Text style={styles.callCTAText}>📞 {t('callNow')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.whatsappCTAButton}
               onPress={() => whatsappDoctor(item.whatsapp || item.phone, item.name)}
             >
-              <Text style={styles.whatsappCTAText}>💬 WhatsApp</Text>
+              <Text style={styles.whatsappCTAText}>💬 {t('whatsappBtn')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -297,21 +299,21 @@ export default function DoctorsScreen({ navigation }) {
           <TouchableOpacity onPress={() => setShowAddModal(false)}>
             <Text style={styles.closeBtn}>✕</Text>
           </TouchableOpacity>
-          <Text style={styles.modalTitle}>Add Doctor</Text>
+          <Text style={styles.modalTitle}>{t('addDoctor')}</Text>
           <View style={{ width: 30 }} />
         </View>
 
         <ScrollView style={styles.formScroll} keyboardShouldPersistTaps="handled">
-          <Text style={styles.fieldLabel}>Doctor Name *</Text>
+          <Text style={styles.fieldLabel}>{t('doctorName')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter name"
+            placeholder={t('enterName')}
             value={form.name}
             onChangeText={(v) => setForm({ ...form, name: v })}
             placeholderTextColor={COLORS.textLight}
           />
 
-          <Text style={styles.fieldLabel}>Specialty *</Text>
+          <Text style={styles.fieldLabel}>{t('specialty')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
             {DOCTOR_SPECIALTIES.map((spec) => (
               <TouchableOpacity
@@ -327,76 +329,76 @@ export default function DoctorsScreen({ navigation }) {
             ))}
           </ScrollView>
 
-          <Text style={styles.fieldLabel}>Clinic Name</Text>
+          <Text style={styles.fieldLabel}>{t('clinicName')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Clinic/Hospital name"
+            placeholder={t('clinicPlaceholder')}
             value={form.clinicName}
             onChangeText={(v) => setForm({ ...form, clinicName: v })}
             placeholderTextColor={COLORS.textLight}
           />
 
-          <Text style={styles.fieldLabel}>Address *</Text>
+          <Text style={styles.fieldLabel}>{t('addressField')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Full address"
+            placeholder={t('fullAddress')}
             value={form.address}
             onChangeText={(v) => setForm({ ...form, address: v })}
             placeholderTextColor={COLORS.textLight}
           />
 
-          <Text style={styles.fieldLabel}>Phone *</Text>
+          <Text style={styles.fieldLabel}>{t('phoneField')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Phone number"
+            placeholder={t('phonePlaceholder')}
             value={form.phone}
             onChangeText={(v) => setForm({ ...form, phone: v })}
             keyboardType="phone-pad"
             placeholderTextColor={COLORS.textLight}
           />
 
-          <Text style={styles.fieldLabel}>WhatsApp</Text>
+          <Text style={styles.fieldLabel}>{t('whatsappBtn')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="WhatsApp number (if different)"
+            placeholder={t('whatsappDifferent')}
             value={form.whatsapp}
             onChangeText={(v) => setForm({ ...form, whatsapp: v })}
             keyboardType="phone-pad"
             placeholderTextColor={COLORS.textLight}
           />
 
-          <Text style={styles.fieldLabel}>Timings</Text>
+          <Text style={styles.fieldLabel}>{t('timings')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., Mon-Sat: 5PM-9PM"
+            placeholder={t('timingsPlaceholder')}
             value={form.timings}
             onChangeText={(v) => setForm({ ...form, timings: v })}
             placeholderTextColor={COLORS.textLight}
           />
 
-          <Text style={styles.fieldLabel}>Consultation Fee (Rs.)</Text>
+          <Text style={styles.fieldLabel}>{t('feeField')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., 500"
+            placeholder={t('feePlaceholder')}
             value={form.fee}
             onChangeText={(v) => setForm({ ...form, fee: v })}
             keyboardType="numeric"
             placeholderTextColor={COLORS.textLight}
           />
 
-          <Text style={styles.fieldLabel}>Education/Qualifications</Text>
+          <Text style={styles.fieldLabel}>{t('educationField')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., MBBS, FCPS"
+            placeholder={t('educationPlaceholder')}
             value={form.education}
             onChangeText={(v) => setForm({ ...form, education: v })}
             placeholderTextColor={COLORS.textLight}
           />
 
-          <Text style={styles.fieldLabel}>Experience</Text>
+          <Text style={styles.fieldLabel}>{t('experienceField')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., 15 years"
+            placeholder={t('experiencePlaceholder')}
             value={form.experience}
             onChangeText={(v) => setForm({ ...form, experience: v })}
             placeholderTextColor={COLORS.textLight}
@@ -407,7 +409,7 @@ export default function DoctorsScreen({ navigation }) {
             onPress={() => setForm({ ...form, isVerified: !form.isVerified })}
           >
             <Text style={styles.verifyToggleText}>
-              {form.isVerified ? '✓ Marked as Verified' : 'Mark as Verified'}
+              {form.isVerified ? t('markedVerified') : t('markVerified')}
             </Text>
           </TouchableOpacity>
 
@@ -419,7 +421,7 @@ export default function DoctorsScreen({ navigation }) {
             {saving ? (
               <ActivityIndicator color={COLORS.white} />
             ) : (
-              <Text style={styles.submitText}>Add Doctor</Text>
+              <Text style={styles.submitText}>{t('addDoctor')}</Text>
             )}
           </TouchableOpacity>
 
@@ -435,9 +437,9 @@ export default function DoctorsScreen({ navigation }) {
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center' }}>
           <Ionicons name="chevron-back" size={22} color={COLORS.white} />
-          <Text style={styles.headerBackBtn}>Back</Text>
+          <Text style={styles.headerBackBtn}>{t('back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Doctors & Clinics</Text>
+        <Text style={styles.headerTitle}>{t('doctorsTitle')}</Text>
         {isAdmin ? (
           <TouchableOpacity onPress={() => setShowAddModal(true)}>
             <Text style={styles.addBtn}>+ Add</Text>
@@ -451,7 +453,7 @@ export default function DoctorsScreen({ navigation }) {
       <View style={styles.searchBar}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search doctors, clinics..."
+          placeholder={t('searchDoctors')}
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={loadDoctors}
@@ -499,9 +501,9 @@ export default function DoctorsScreen({ navigation }) {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>🏥</Text>
-              <Text style={styles.emptyText}>No doctors found</Text>
+              <Text style={styles.emptyText}>{t('noDoctorsFound')}</Text>
               <Text style={styles.emptySubtext}>
-                {isAdmin ? 'Add doctors using the + button' : 'Check back later'}
+                {isAdmin ? t('addDoctorsHint') : t('checkBackLater')}
               </Text>
             </View>
           }

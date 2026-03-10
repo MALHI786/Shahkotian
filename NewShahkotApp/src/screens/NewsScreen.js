@@ -9,10 +9,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { COLORS, NEWS_CATEGORIES } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
 import { newsAPI } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 import AdBanner from '../components/AdBanner';
 
 export default function NewsScreen() {
   const { isAdmin } = useAuth();
+  const { t } = useLanguage();
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -75,7 +77,7 @@ export default function NewsScreen() {
 
   const handleCreate = async () => {
     if (!title.trim() || !content.trim()) {
-      return Alert.alert('Required', 'Title and content are required.');
+      return Alert.alert(t('required'), 'Title and content are required.');
     }
     try {
       setCreating(true);
@@ -98,7 +100,7 @@ export default function NewsScreen() {
         });
       }
       await newsAPI.create(formData);
-      Alert.alert('Published!', 'Article published successfully.');
+      Alert.alert(t('success'), t('articlePublished'));
       setShowCreate(false);
       setTitle(''); setContent(''); setCategory('LOCAL'); setImages([]); setVideo(null);
       loadNews();
@@ -110,10 +112,10 @@ export default function NewsScreen() {
   };
 
   const handleDelete = (id) => {
-    Alert.alert('Delete Article', 'Are you sure?', [
-      { text: 'Cancel' },
+    Alert.alert(t('deleteArticle'), 'Are you sure?', [
+      { text: t('cancel') },
       {
-        text: 'Delete', style: 'destructive',
+        text: t('delete'), style: 'destructive',
         onPress: async () => {
           try {
             await newsAPI.delete(id);
@@ -167,9 +169,9 @@ export default function NewsScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>News & Articles</Text>
+        <Text style={styles.headerTitle}>{t('newsTitle')}</Text>
         <TouchableOpacity style={styles.publishBtn} onPress={() => setShowCreate(true)}>
-          <Text style={styles.publishBtnText}>+ Publish</Text>
+          <Text style={styles.publishBtnText}>{t('publishArticle')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -202,7 +204,7 @@ export default function NewsScreen() {
           !loading && (
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>📰</Text>
-              <Text style={styles.emptyText}>No news articles yet</Text>
+              <Text style={styles.emptyText}>{t('noNewsYet')}</Text>
             </View>
           )
         }
@@ -214,7 +216,7 @@ export default function NewsScreen() {
           <View style={styles.container}>
             <View style={styles.modalHeader}>
               <TouchableOpacity onPress={() => setSelectedArticle(null)}>
-                <Text style={styles.backBtn}>{'<'} Back</Text>
+                <Text style={styles.backBtn}>{'<'} {t('back')}</Text>
               </TouchableOpacity>
               {isAdmin && (
                 <TouchableOpacity onPress={() => handleDelete(selectedArticle.id)}>
@@ -256,18 +258,18 @@ export default function NewsScreen() {
         <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowCreate(false)}>
-              <Text style={styles.backBtn}>{'<'} Cancel</Text>
+              <Text style={styles.backBtn}>{'<'} {t('cancel')}</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Publish Article</Text>
+            <Text style={styles.modalTitle}>{t('publishArticleTitle')}</Text>
             <View style={{ width: 60 }} />
           </View>
           <ScrollView contentContainerStyle={{ padding: 16 }}>
-            <Text style={styles.label}>Title</Text>
+            <Text style={styles.label}>{t('articleTitle')}</Text>
             <TextInput
               style={styles.input}
               value={title}
               onChangeText={setTitle}
-              placeholder="Article headline..."
+              placeholder={t('articleTitlePlaceholder')}
               placeholderTextColor={COLORS.textLight}
             />
             <Text style={styles.label}>Category</Text>
@@ -282,16 +284,16 @@ export default function NewsScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            <Text style={styles.label}>Content</Text>
+            <Text style={styles.label}>{t('content')}</Text>
             <TextInput
               style={[styles.input, { height: 160, textAlignVertical: 'top' }]}
               value={content}
               onChangeText={setContent}
-              placeholder="Write article content..."
+              placeholder={t('contentPlaceholder')}
               placeholderTextColor={COLORS.textLight}
               multiline
             />
-            <Text style={styles.label}>Images (optional)</Text>
+            <Text style={styles.label}>{t('imagesOptional')}</Text>
             <TouchableOpacity style={styles.imgPicker} onPress={pickImages}>
               <Text style={styles.imgPickerText}>📷 Pick Images ({images.length}/5)</Text>
             </TouchableOpacity>
@@ -303,7 +305,7 @@ export default function NewsScreen() {
               </ScrollView>
             )}
             <TouchableOpacity style={styles.imgPicker} onPress={pickVideo}>
-              <Text style={styles.imgPickerText}>🎥 {video ? '✅ Video Selected (tap to change)' : 'Add Video (optional, up to 30MB)'}</Text>
+              <Text style={styles.imgPickerText}>🎥 {video ? t('videoSelected') : t('addVideoOptional')}</Text>
             </TouchableOpacity>
             {video && (
               <View style={styles.videoPreviewRow}>
@@ -314,7 +316,7 @@ export default function NewsScreen() {
                   resizeMode="contain"
                 />
                 <TouchableOpacity onPress={() => setVideo(null)} style={styles.removeVideoBtn}>
-                  <Text style={styles.removeVideoText}>✕ Remove</Text>
+                  <Text style={styles.removeVideoText}>{t('removeVideo')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -322,7 +324,7 @@ export default function NewsScreen() {
               {creating ? (
                 <ActivityIndicator color={COLORS.white} />
               ) : (
-                <Text style={styles.submitBtnText}>Publish Article</Text>
+                <Text style={styles.submitBtnText}>{t('publishArticle')}</Text>
               )}
             </TouchableOpacity>
           </ScrollView>

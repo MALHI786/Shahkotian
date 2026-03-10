@@ -7,9 +7,11 @@ import {
 import { COLORS } from '../config/constants';
 import { shopsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function BazarScreen() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [shops, setShops] = useState([]);
   const [myShop, setMyShop] = useState(null);
   const [suggestions, setSuggestions] = useState([]);
@@ -84,7 +86,7 @@ export default function BazarScreen() {
 
   const saveShop = async () => {
     if (!shopForm.name.trim() || !shopForm.contact.trim() || !shopForm.address.trim()) {
-      Alert.alert('Required', 'Name, Contact and Address are required');
+      Alert.alert(t('required'), 'Name, Contact and Address are required');
       return;
     }
     try {
@@ -95,10 +97,10 @@ export default function BazarScreen() {
       };
       if (myShop) {
         await shopsAPI.update(myShop.id, data);
-        Alert.alert('Success', 'Shop updated successfully!');
+        Alert.alert(t('success'), t('shopUpdated'));
       } else {
         await shopsAPI.create(data);
-        Alert.alert('Success', 'Shop added successfully!');
+        Alert.alert(t('success'), t('shopAdded'));
       }
       setShowAddModal(false);
       loadMyShop();
@@ -110,17 +112,17 @@ export default function BazarScreen() {
   };
 
   const deleteShop = () => {
-    Alert.alert('Delete Shop', 'Are you sure you want to delete your shop?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('deleteShop'), t('deleteShopConfirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive', onPress: async () => {
+        text: t('delete'), style: 'destructive', onPress: async () => {
           try {
             await shopsAPI.delete(myShop.id);
             setMyShop(null);
             setShopForm({ name: '', address: '', contact: '', description: '', categories: '' });
-            Alert.alert('Deleted', 'Shop removed successfully');
+            Alert.alert(t('success'), t('shopDeleted'));
           } catch (error) {
-            Alert.alert('Error', 'Failed to delete shop');
+            Alert.alert(t('error'), 'Failed to delete shop');
           }
         }
       }
@@ -153,10 +155,10 @@ export default function BazarScreen() {
 
       <View style={styles.contactRow}>
         <TouchableOpacity style={styles.contactButton} onPress={() => callShop(item.contact)}>
-          <Text style={styles.contactText}>📞 Call</Text>
+          <Text style={styles.contactText}>📞 {t('call')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.whatsappButton} onPress={() => whatsappShop(item.contact)}>
-          <Text style={styles.whatsappText}>💬 WhatsApp</Text>
+          <Text style={styles.whatsappText}>💬 {t('whatsappBtn')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -168,12 +170,12 @@ export default function BazarScreen() {
       <View style={styles.searchHeader}>
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>What do you want to buy?</Text>
-            <Text style={styles.headerSub}>Type the item and find shops in Shahkot</Text>
+            <Text style={styles.headerTitle}>{t('bazarTitle')}</Text>
+            <Text style={styles.headerSub}>{t('bazarSubtitle')}</Text>
           </View>
           {user && (
             <TouchableOpacity style={styles.myShopBtn} onPress={() => setShowAddModal(true)}>
-              <Text style={styles.myShopBtnText}>{myShop ? '🏪 My Shop' : '➕ Add Shop'}</Text>
+              <Text style={styles.myShopBtnText}>{myShop ? t('myShop') : t('addShop')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -181,7 +183,7 @@ export default function BazarScreen() {
         <View style={styles.searchBar}>
           <TextInput
             style={styles.searchInput}
-            placeholder='e.g. "shoes", "mobile", "furniture"'
+            placeholder={t('bazarSearchPlaceholder')}
             value={searchQuery}
             onChangeText={setSearchQuery}
             onSubmitEditing={() => searchShops()}
@@ -189,7 +191,7 @@ export default function BazarScreen() {
             placeholderTextColor={COLORS.textLight}
           />
           <TouchableOpacity style={styles.searchButton} onPress={() => searchShops()}>
-            <Text style={styles.searchBtnText}>🔍 Find</Text>
+            <Text style={styles.searchBtnText}>{t('bazarFindBtn')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -197,7 +199,7 @@ export default function BazarScreen() {
       {/* My Shop Card */}
       {myShop && !hasSearched && (
         <View style={styles.myShopSection}>
-          <Text style={styles.myShopTitle}>🏪 Your Shop</Text>
+          <Text style={styles.myShopTitle}>{t('yourShop')}</Text>
           <View style={[styles.shopCard, styles.myShopCard]}>
             <View style={styles.shopHeader}>
               <View style={styles.shopIcon}>
@@ -210,10 +212,10 @@ export default function BazarScreen() {
             </View>
             <View style={styles.myShopActions}>
               <TouchableOpacity style={styles.editShopBtn} onPress={() => setShowAddModal(true)}>
-                <Text style={styles.editBtnText}>✏️ Edit</Text>
+                <Text style={styles.editBtnText}>{t('editShop')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.deleteShopBtn} onPress={deleteShop}>
-                <Text style={styles.deleteBtnText}>🗑️ Delete</Text>
+                <Text style={styles.deleteBtnText}>{t('deleteShop')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -228,51 +230,51 @@ export default function BazarScreen() {
         >
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={styles.modalTitle}>{myShop ? '✏️ Edit Your Shop' : '🏪 Add Your Shop'}</Text>
-              <Text style={styles.modalSubtitle}>Let people in Shahkot find your business</Text>
+              <Text style={styles.modalTitle}>{myShop ? t('editYourShop') : t('addYourShop')}</Text>
+              <Text style={styles.modalSubtitle}>{t('letPeopleFind')}</Text>
               
-              <Text style={styles.inputLabel}>Shop Name *</Text>
+              <Text style={styles.inputLabel}>{t('shopName')}</Text>
               <TextInput
                 style={styles.formInput}
-                placeholder="e.g. Ali Mobile Shop"
+                placeholder={t('shopNamePlaceholder')}
                 value={shopForm.name}
                 onChangeText={(t) => setShopForm({ ...shopForm, name: t })}
                 placeholderTextColor={COLORS.textLight}
               />
               
-              <Text style={styles.inputLabel}>Contact Number *</Text>
+              <Text style={styles.inputLabel}>{t('contactNumber')}</Text>
               <TextInput
                 style={styles.formInput}
-                placeholder="e.g. 0300-1234567"
+                placeholder={t('contactPlaceholder')}
                 value={shopForm.contact}
                 onChangeText={(t) => setShopForm({ ...shopForm, contact: t })}
                 keyboardType="phone-pad"
                 placeholderTextColor={COLORS.textLight}
               />
               
-              <Text style={styles.inputLabel}>Address *</Text>
+              <Text style={styles.inputLabel}>{t('addressField')}</Text>
               <TextInput
                 style={styles.formInput}
-                placeholder="e.g. Main Bazar, Near Mosque"
+                placeholder={t('addressPlaceholder')}
                 value={shopForm.address}
                 onChangeText={(t) => setShopForm({ ...shopForm, address: t })}
                 placeholderTextColor={COLORS.textLight}
               />
               
-              <Text style={styles.inputLabel}>Description</Text>
+              <Text style={styles.inputLabel}>{t('descriptionField')}</Text>
               <TextInput
                 style={[styles.formInput, { height: 70, textAlignVertical: 'top' }]}
-                placeholder="What do you sell? (optional)"
+                placeholder={t('descriptionPlaceholder')}
                 value={shopForm.description}
                 onChangeText={(t) => setShopForm({ ...shopForm, description: t })}
                 multiline
                 placeholderTextColor={COLORS.textLight}
               />
               
-              <Text style={styles.inputLabel}>Categories (comma separated)</Text>
+              <Text style={styles.inputLabel}>{t('categories')}</Text>
               <TextInput
                 style={styles.formInput}
-                placeholder="e.g. Mobile, Accessories, Repair"
+                placeholder={t('categoriesPlaceholder')}
                 value={shopForm.categories}
                 onChangeText={(t) => setShopForm({ ...shopForm, categories: t })}
                 placeholderTextColor={COLORS.textLight}
@@ -280,10 +282,10 @@ export default function BazarScreen() {
               
               <View style={styles.modalActions}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowAddModal(false)}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                  <Text style={styles.cancelBtnText}>{t('cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.saveBtn} onPress={saveShop} disabled={saving}>
-                  <Text style={styles.saveBtnText}>{saving ? 'Saving...' : myShop ? 'Update Shop' : 'Add Shop'}</Text>
+                  <Text style={styles.saveBtnText}>{saving ? t('saving') : myShop ? t('updateShop') : t('addShop')}</Text>
                 </TouchableOpacity>
               </View>
               <View style={{ height: 30 }} />
@@ -295,7 +297,7 @@ export default function BazarScreen() {
       {/* Quick Suggestions */}
       {!hasSearched && suggestions.length > 0 && (
         <View style={styles.suggestionsSection}>
-          <Text style={styles.suggestionsTitle}>Popular Searches</Text>
+          <Text style={styles.suggestionsTitle}>{t('popularSearches')}</Text>
           <View style={styles.suggestionsGrid}>
             {suggestions.slice(0, 12).map((item, idx) => (
               <TouchableOpacity
@@ -329,8 +331,8 @@ export default function BazarScreen() {
             !loading && (
               <View style={styles.empty}>
                 <Text style={styles.emptyIcon}>🏪</Text>
-                <Text style={styles.emptyText}>No shops found for this item</Text>
-                <Text style={styles.emptySubText}>Try different keywords</Text>
+                <Text style={styles.emptyText}>{t('noShopsFound')}</Text>
+                <Text style={styles.emptySubText}>{t('tryDifferentKeywords')}</Text>
               </View>
             )
           }

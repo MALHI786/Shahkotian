@@ -5,9 +5,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout, isAdmin, updateUser } = useAuth();
+  const { t, language, changeLanguage } = useLanguage();
   const [uploading, setUploading] = useState(false);
   const [showEditPhone, setShowEditPhone] = useState(false);
   const [editPhone, setEditPhone] = useState(user?.phone || '');
@@ -134,12 +136,12 @@ export default function ProfileScreen({ navigation }) {
 
       {/* Info Cards */}
       <View style={styles.infoSection}>
-        <InfoItem icon="📱" label="Phone" value={user?.phone || 'Not set'} />
-        <InfoItem icon="📧" label="Email" value={user?.email || 'Not set'} />
-        <InfoItem icon="💬" label="WhatsApp" value={user?.whatsapp || user?.phone || 'Not set'} />
+        <InfoItem icon="📱" label={t('phone')} value={user?.phone || 'Not set'} />
+        <InfoItem icon="📧" label={t('email')} value={user?.email || 'Not set'} />
+        <InfoItem icon="💬" label={t('whatsapp')} value={user?.whatsapp || user?.phone || 'Not set'} />
         <TouchableOpacity style={styles.editPhoneBtn} onPress={() => { setEditPhone(user?.phone || ''); setEditWhatsapp(user?.whatsapp || ''); setShowEditPhone(true); }}>
           <Ionicons name="pencil" size={16} color={COLORS.primary} />
-          <Text style={styles.editPhoneBtnText}>Edit Phone / WhatsApp</Text>
+          <Text style={styles.editPhoneBtnText}>{t('editPhoneWhatsapp')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -147,31 +149,51 @@ export default function ProfileScreen({ navigation }) {
       <View style={styles.actions}>
         <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Market')}>
           <Text style={styles.actionIcon}>🛒</Text>
-          <Text style={styles.actionText}>My Listings</Text>
+          <Text style={styles.actionText}>{t('myListings')}</Text>
           <Text style={styles.actionArrow}>></Text>
         </TouchableOpacity>
 
         {isAdmin && (
           <TouchableOpacity style={[styles.actionButton, styles.adminAction]} onPress={() => navigation.navigate('AdminDashboard')}>
             <Text style={styles.actionIcon}>⚙️</Text>
-            <Text style={[styles.actionText, { color: COLORS.primary }]}>Admin Dashboard</Text>
+            <Text style={[styles.actionText, { color: COLORS.primary }]}>{t('adminDashboard')}</Text>
             <Text style={styles.actionArrow}>></Text>
           </TouchableOpacity>
         )}
 
         <TouchableOpacity style={styles.actionButton} onPress={showPhotoOptions}>
           <Text style={styles.actionIcon}>📸</Text>
-          <Text style={styles.actionText}>Change Profile Photo</Text>
+          <Text style={styles.actionText}>{t('changePhoto')}</Text>
           <Text style={styles.actionArrow}>></Text>
         </TouchableOpacity>
+
+        {/* Language Selector */}
+        <View style={[styles.actionButton, { alignItems: 'center' }]}>
+          <Text style={styles.actionIcon}>🌐</Text>
+          <Text style={[styles.actionText]}>{t('language')}</Text>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            <TouchableOpacity
+              style={[langBtnStyle.btn, language === 'en' && langBtnStyle.active]}
+              onPress={() => changeLanguage('en')}
+            >
+              <Text style={[langBtnStyle.txt, language === 'en' && langBtnStyle.activeTxt]}>English</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[langBtnStyle.btn, language === 'ur' && langBtnStyle.active]}
+              onPress={() => changeLanguage('ur')}
+            >
+              <Text style={[langBtnStyle.txt, language === 'ur' && langBtnStyle.activeTxt]}>اردو</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Contact Admin */}
         <View style={styles.contactAdminCard}>
           <View style={styles.contactAdminHeader}>
             <Ionicons name="shield-checkmark" size={20} color={COLORS.primary} />
-            <Text style={styles.contactAdminTitle}>Contact Admin</Text>
+            <Text style={styles.contactAdminTitle}>{t('contactAdmin')}</Text>
           </View>
-          <Text style={styles.contactAdminSub}>Need help? Reach out to the admin</Text>
+          <Text style={styles.contactAdminSub}>{t('needHelp')}</Text>
           <View style={styles.contactAdminRow}>
             <TouchableOpacity style={[styles.contactBtn, { backgroundColor: '#10B98112' }]} onPress={() => Linking.openURL('tel:03160623838')}>
               <Ionicons name="call" size={18} color="#10B981" />
@@ -197,7 +219,7 @@ export default function ProfileScreen({ navigation }) {
 
         <TouchableOpacity style={[styles.actionButton, styles.logoutButton]} onPress={handleLogout}>
           <Text style={styles.actionIcon}>🚪</Text>
-          <Text style={[styles.actionText, { color: COLORS.error }]}>Logout</Text>
+          <Text style={[styles.actionText, { color: COLORS.error }]}>{t('logout')}</Text>
           <Text style={styles.actionArrow}>></Text>
         </TouchableOpacity>
       </View>
@@ -207,8 +229,8 @@ export default function ProfileScreen({ navigation }) {
       <Modal visible={showEditPhone} animationType="slide" transparent>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Edit Phone Numbers</Text>
-            <Text style={styles.modalLabel}>Phone Number</Text>
+            <Text style={styles.modalTitle}>{t('editPhoneNumbers')}</Text>
+            <Text style={styles.modalLabel}>{t('phoneNumber')}</Text>
             <TextInput
               style={styles.modalInput}
               placeholder="e.g. 03001234567"
@@ -217,7 +239,7 @@ export default function ProfileScreen({ navigation }) {
               keyboardType="phone-pad"
               placeholderTextColor={COLORS.textLight}
             />
-            <Text style={styles.modalLabel}>WhatsApp Number</Text>
+            <Text style={styles.modalLabel}>{t('whatsappNumber')}</Text>
             <TextInput
               style={styles.modalInput}
               placeholder="e.g. 03001234567"
@@ -228,10 +250,10 @@ export default function ProfileScreen({ navigation }) {
             />
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowEditPhone(false)}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
+                <Text style={styles.modalCancelText}>{t('cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.modalSaveBtn, savingPhone && { opacity: 0.6 }]} onPress={savePhoneNumbers} disabled={savingPhone}>
-                {savingPhone ? <ActivityIndicator color={COLORS.white} size="small" /> : <Text style={styles.modalSaveText}>Save</Text>}
+                {savingPhone ? <ActivityIndicator color={COLORS.white} size="small" /> : <Text style={styles.modalSaveText}>{t('save')}</Text>}
               </TouchableOpacity>
             </View>
           </View>
@@ -252,6 +274,16 @@ function InfoItem({ icon, label, value }) {
     </View>
   );
 }
+
+const langBtnStyle = StyleSheet.create({
+  btn: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16,
+    borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.background,
+  },
+  active: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  txt: { fontSize: 12, fontWeight: '600', color: COLORS.textSecondary },
+  activeTxt: { color: COLORS.white },
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },

@@ -6,6 +6,7 @@ import {
 import { COLORS } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
 import { bloodAPI } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 import AdBanner from '../components/AdBanner';
 import LOCAL_DONORS_RAW from '../data/bloodDonors';
 
@@ -32,6 +33,7 @@ BLOOD_GROUPS.forEach(g => { GROUP_LABEL_MAP[g.label] = g.key; });
 
 export default function BloodDonationScreen({ navigation }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [donors, setDonors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,7 +83,7 @@ export default function BloodDonationScreen({ navigation }) {
 
   const registerDonor = async () => {
     if (!regName.trim() || !regPhone.trim() || !regBloodGroup) {
-      Alert.alert('Required', 'Please fill name, phone and blood group.');
+      Alert.alert(t('required'), 'Please fill name, phone and blood group.');
       return;
     }
     setRegistering(true);
@@ -97,7 +99,7 @@ export default function BloodDonationScreen({ navigation }) {
       setShowRegister(false);
       loadDonors();
       loadMyDonation();
-      Alert.alert('✅ Registered!', 'You are now registered as a blood donor. Thank you!');
+      Alert.alert(t('success'), t('donorRegistered'));
     } catch (error) {
       Alert.alert('Error', error.response?.data?.error || 'Failed to register.');
     } finally {
@@ -110,23 +112,23 @@ export default function BloodDonationScreen({ navigation }) {
     try {
       await bloodAPI.update({ isAvailable: !myDonation.isAvailable });
       loadMyDonation();
-      Alert.alert('Updated', myDonation.isAvailable ? 'You are now unavailable.' : 'You are now available!');
+      Alert.alert(t('success'), myDonation.isAvailable ? t('nowUnavailable') : t('nowAvailable'));
     } catch (error) {
       Alert.alert('Error', 'Failed to update status.');
     }
   };
 
   const unregister = async () => {
-    Alert.alert('Unregister', 'Remove yourself from the blood donor list?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('unregister'), t('unregisterConfirm'), [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Unregister', style: 'destructive',
+        text: t('unregister'), style: 'destructive',
         onPress: async () => {
           try {
             await bloodAPI.unregister();
             setMyDonation(null);
             loadDonors();
-            Alert.alert('Done', 'You have been removed from the donor list.');
+            Alert.alert(t('success'), t('donorRemoved'));
           } catch (error) {
             Alert.alert('Error', 'Failed to unregister.');
           }
@@ -161,7 +163,7 @@ export default function BloodDonationScreen({ navigation }) {
               <Text style={styles.donorName}>{item.name}</Text>
               {item.isEmergency && (
                 <View style={styles.emergencyTag}>
-                  <Text style={styles.emergencyTagText}>🚨 Emergency</Text>
+                  <Text style={styles.emergencyTagText}>{t('emergencyTag')}</Text>
                 </View>
               )}
             </View>
@@ -175,11 +177,11 @@ export default function BloodDonationScreen({ navigation }) {
         </View>
         <View style={styles.donorActions}>
           <TouchableOpacity style={styles.callBtn} onPress={() => callDonor(item.phone)}>
-            <Text style={styles.callBtnText}>📞 Call</Text>
+            <Text style={styles.callBtnText}>📞 {t('call')}</Text>
           </TouchableOpacity>
           {item.whatsapp && (
             <TouchableOpacity style={styles.whatsappBtn} onPress={() => whatsappDonor(item.whatsapp, item.name)}>
-              <Text style={styles.whatsappBtnText}>💬 WhatsApp</Text>
+              <Text style={styles.whatsappBtnText}>💬 {t('whatsappBtn')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -192,11 +194,11 @@ export default function BloodDonationScreen({ navigation }) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtn}>{'<'} Back</Text>
+          <Text style={styles.backBtn}>{'<'} {t('back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>🩸 Blood Donation</Text>
+        <Text style={styles.headerTitle}>{t('bloodTitle')}</Text>
         <TouchableOpacity onPress={() => setShowRegister(true)}>
-          <Text style={styles.addBtn}>+ Donate</Text>
+          <Text style={styles.addBtn}>{t('registerDonate')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -204,14 +206,14 @@ export default function BloodDonationScreen({ navigation }) {
       {myDonation && (
         <View style={styles.myStatus}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.myStatusTitle}>Your Donor Status</Text>
+            <Text style={styles.myStatusTitle}>{t('yourDonorStatus')}</Text>
             <Text style={styles.myStatusLabel}>
-              {getGroupInfo(myDonation.bloodGroup).label} • {myDonation.isAvailable ? '🟢 Available' : '🔴 Unavailable'}
-              {myDonation.isEmergency ? ' • 🚨 Emergency' : ''}
+              {getGroupInfo(myDonation.bloodGroup).label} • {myDonation.isAvailable ? t('available') : t('unavailable')}
+              {myDonation.isEmergency ? ` • ${t('emergencyTag')}` : ''}
             </Text>
           </View>
           <TouchableOpacity style={styles.toggleAvailBtn} onPress={toggleAvailability}>
-            <Text style={styles.toggleAvailText}>{myDonation.isAvailable ? 'Go Offline' : 'Go Online'}</Text>
+            <Text style={styles.toggleAvailText}>{myDonation.isAvailable ? t('goOffline') : t('goOnline')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.unregBtn} onPress={unregister}>
             <Text style={styles.unregText}>✕</Text>
@@ -262,7 +264,7 @@ export default function BloodDonationScreen({ navigation }) {
       {/* Emergency Banner */}
       {finderMode === 'emergency' && (
         <View style={styles.emergencyBanner}>
-          <Text style={styles.emergencyBannerText}>🚨 Showing emergency-ready donors only</Text>
+          <Text style={styles.emergencyBannerText}>{t('emergencyBanner')}</Text>
         </View>
       )}
 
@@ -321,14 +323,14 @@ export default function BloodDonationScreen({ navigation }) {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={styles.emptyIcon}>🩸</Text>
-              <Text style={styles.emptyTitle}>No Donors Found</Text>
+              <Text style={styles.emptyTitle}>{t('noDonorsFound')}</Text>
               <Text style={styles.emptySubtext}>
                 {finderMode === 'emergency'
-                  ? 'No emergency donors available for this blood group.'
-                  : 'Be the first to register as a blood donor!'}
+                  ? t('noEmergencyDonors')
+                  : t('beFirstDonor')}
               </Text>
               <TouchableOpacity style={styles.registerBtn} onPress={() => setShowRegister(true)}>
-                <Text style={styles.registerBtnText}>Register as Donor</Text>
+                <Text style={styles.registerBtnText}>{t('registerDonor')}</Text>
               </TouchableOpacity>
             </View>
           }
@@ -342,28 +344,28 @@ export default function BloodDonationScreen({ navigation }) {
             <TouchableOpacity onPress={() => setShowRegister(false)}>
               <Text style={styles.modalClose}>✕</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Register as Donor</Text>
+            <Text style={styles.modalTitle}>{t('registerDonorTitle')}</Text>
             <View style={{ width: 30 }} />
           </View>
 
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             <View style={styles.heroSection}>
               <Text style={styles.heroEmoji}>🩸</Text>
-              <Text style={styles.heroTitle}>Save a Life Today</Text>
-              <Text style={styles.heroSubtext}>Register to help someone in need of blood</Text>
+              <Text style={styles.heroTitle}>{t('saveLife')}</Text>
+              <Text style={styles.heroSubtext}>{t('registerHelp')}</Text>
             </View>
 
-            <TextInput style={styles.input} placeholder="Your Name *" value={regName}
+            <TextInput style={styles.input} placeholder={t('yourName')} value={regName}
               onChangeText={setRegName} placeholderTextColor={COLORS.textLight} />
-            <TextInput style={styles.input} placeholder="Phone Number *" value={regPhone}
+            <TextInput style={styles.input} placeholder={t('yourPhoneNumber')} value={regPhone}
               onChangeText={setRegPhone} keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={styles.input} placeholder="WhatsApp Number"
+            <TextInput style={styles.input} placeholder={t('yourWhatsapp')}
               value={regWhatsapp} onChangeText={setRegWhatsapp} keyboardType="phone-pad"
               placeholderTextColor={COLORS.textLight} />
-            <TextInput style={styles.input} placeholder="Address / Area in Shahkot"
+            <TextInput style={styles.input} placeholder={t('areaInShahkot')}
               value={regAddress} onChangeText={setRegAddress} placeholderTextColor={COLORS.textLight} />
 
-            <Text style={styles.fieldLabel}>Blood Group *</Text>
+            <Text style={styles.fieldLabel}>{t('bloodGroup')}</Text>
             <View style={styles.bloodGroupGrid}>
               {BLOOD_GROUPS.map((group) => (
                 <TouchableOpacity
@@ -384,17 +386,17 @@ export default function BloodDonationScreen({ navigation }) {
               ))}
             </View>
 
-            <Text style={styles.fieldLabel}>Availability Type</Text>
+            <Text style={styles.fieldLabel}>{t('availabilityType')}</Text>
             <View style={styles.availTypeRow}>
               <TouchableOpacity
                 style={[styles.availTypeBtn, !regEmergency && styles.availTypeBtnActive]}
                 onPress={() => setRegEmergency(false)}
               >
                 <Text style={[styles.availTypeText, !regEmergency && styles.availTypeTextActive]}>
-                  📋 Normal Donor
+                  {t('normalDonor')}
                 </Text>
                 <Text style={[styles.availTypeDesc, !regEmergency && { color: 'rgba(255,255,255,0.8)' }]}>
-                  Available for scheduled requests
+                  {t('normalDonorDesc')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -402,10 +404,10 @@ export default function BloodDonationScreen({ navigation }) {
                 onPress={() => setRegEmergency(true)}
               >
                 <Text style={[styles.availTypeText, regEmergency && styles.availTypeTextActive]}>
-                  🚨 Emergency Donor
+                  {t('emergencyDonor')}
                 </Text>
                 <Text style={[styles.availTypeDesc, regEmergency && { color: 'rgba(255,255,255,0.8)' }]}>
-                  Available 24/7 for emergencies
+                  {t('emergencyDonorDesc')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -418,7 +420,7 @@ export default function BloodDonationScreen({ navigation }) {
               {registering ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.submitText}>🩸 Register as Donor</Text>
+                <Text style={styles.submitText}>{t('registerDonorBtn')}</Text>
               )}
             </TouchableOpacity>
 

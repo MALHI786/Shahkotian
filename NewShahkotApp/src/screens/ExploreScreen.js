@@ -4,77 +4,82 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../config/constants';
+import { useLanguage } from '../context/LanguageContext';
 
-const CATEGORIES = [
-  {
-    title: 'Community',
-    icon: 'people',
-    color: '#6366F1',
-    items: [
-      { key: 'OpenChat', label: 'Open Chat', icon: 'chatbubbles', desc: 'Public Chat Room', color: '#14B8A6' },
-      { key: 'Rishta', label: 'Rishta', icon: 'heart-circle', desc: 'Matrimonial', color: '#EC4899' },
-      { key: 'DMList', label: 'DM Chat', icon: 'mail', desc: 'Private Messages', color: '#8B5CF6' },
-    ],
-  },
-  {
-    title: 'Services',
-    icon: 'briefcase',
-    color: '#2563EB',
-    items: [
-      { key: 'Jobs', label: 'Jobs', icon: 'briefcase', desc: 'Find & Post Jobs', color: '#2563EB' },
-      { key: 'Market', label: 'Buy & Sell', icon: 'cart', desc: 'Marketplace', color: '#FF6584' },
-      { key: 'Bazar', label: 'Bazar Finder', icon: 'storefront', desc: 'Find Shops', color: '#3B82F6' },
-      { key: 'GovtOffices', label: 'Govt Offices', icon: 'business', desc: 'Directory & Helplines', color: '#F59E0B' },
-      { key: 'Doctors', label: 'Doctors', icon: 'medkit', desc: 'Find Healthcare', color: '#E11D48' },
-      { key: 'RestaurantDeals', label: 'Restaurants', icon: 'restaurant', desc: 'Deals & Offers', color: '#F97316' },
-    ],
-  },
-  {
-    title: 'Information',
-    icon: 'information-circle',
-    color: '#8B5CF6',
-    items: [
-      { key: 'News & Articles', label: 'News', icon: 'newspaper', desc: 'Local Updates', color: '#8B5CF6' },
-      { key: 'Weather', label: 'Weather', icon: 'partly-sunny', desc: 'Shahkot Forecast', color: '#0EA5E9' },
-
-      { key: 'Helpline', label: 'Helplines', icon: 'call', desc: 'Emergency Numbers', color: '#EF4444' },
-    ],
-  },
-  {
-    title: 'Activities',
-    icon: 'trophy',
-    color: '#10B981',
-    items: [
-      { key: 'Tournaments', label: 'Tournaments', icon: 'trophy', desc: 'Sports Events', color: '#10B981' },
-      { key: 'BloodDonation', label: 'Blood Bank', icon: 'water', desc: 'Donate & Find', color: '#B91C1C' },
-      { key: 'AIChatbot', label: 'AI Chatbot', icon: 'sparkles', desc: 'Ask Anything', color: '#6366F1' },
-    ],
-  },
-];
+function getCategories(t) {
+  return [
+    {
+      title: t('community'),
+      icon: 'people',
+      color: '#6366F1',
+      items: [
+        { key: 'OpenChat', label: t('openChat'), icon: 'chatbubbles', desc: t('publicChatRoom'), color: '#14B8A6' },
+        { key: 'Rishta', label: t('rishta'), icon: 'heart-circle', desc: t('matrimonial'), color: '#EC4899' },
+        { key: 'DMList', label: t('dmChat'), icon: 'mail', desc: t('privateMessages'), color: '#8B5CF6' },
+      ],
+    },
+    {
+      title: t('services'),
+      icon: 'briefcase',
+      color: '#2563EB',
+      items: [
+        { key: 'Jobs', label: t('jobs'), icon: 'briefcase', desc: t('findPostJobs'), color: '#2563EB' },
+        { key: 'Market', label: t('buySell'), icon: 'cart', desc: t('marketplace'), color: '#FF6584' },
+        { key: 'Bazar', label: t('bazarFinder'), icon: 'storefront', desc: t('findShops'), color: '#3B82F6' },
+        { key: 'GovtOffices', label: t('govtOffices'), icon: 'business', desc: t('directoryHelplines'), color: '#F59E0B' },
+        { key: 'Doctors', label: t('doctors'), icon: 'medkit', desc: t('findHealthcare'), color: '#E11D48' },
+        { key: 'RestaurantDeals', label: t('restaurants'), icon: 'restaurant', desc: t('dealsOffers'), color: '#F97316' },
+        { key: 'ClothBrands', label: t('brands'), icon: 'shirt', desc: t('dealsOffers'), color: '#8B5CF6' },
+      ],
+    },
+    {
+      title: t('information'),
+      icon: 'information-circle',
+      color: '#8B5CF6',
+      items: [
+        { key: 'News & Articles', label: t('news'), icon: 'newspaper', desc: t('localUpdates'), color: '#8B5CF6' },
+        { key: 'Weather', label: t('weather'), icon: 'partly-sunny', desc: t('shahkotForecast'), color: '#0EA5E9' },
+        { key: 'Helpline', label: t('helplines'), icon: 'call', desc: t('emergencyNumbers'), color: '#EF4444' },
+      ],
+    },
+    {
+      title: t('activities'),
+      icon: 'trophy',
+      color: '#10B981',
+      items: [
+        { key: 'Tournaments', label: t('tournaments'), icon: 'trophy', desc: t('sportsEvents'), color: '#10B981' },
+        { key: 'BloodDonation', label: t('bloodBank'), icon: 'water', desc: t('donateFind'), color: '#B91C1C' },
+        { key: 'AIChatbot', label: t('aiChatbot'), icon: 'sparkles', desc: t('askAnything'), color: '#6366F1' },
+      ],
+    },
+  ];
+}
 
 export default function ExploreScreen({ navigation }) {
+  const { t, language } = useLanguage();
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return CATEGORIES;
+    const cats = getCategories(t);
+    if (!search.trim()) return cats;
     const q = search.toLowerCase();
-    return CATEGORIES.map(cat => ({
+    return cats.map(cat => ({
       ...cat,
       items: cat.items.filter(i => i.label.toLowerCase().includes(q) || i.desc.toLowerCase().includes(q)),
     })).filter(cat => cat.items.length > 0);
-  }, [search]);
+  }, [search, language]);
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Explore Shahkot</Text>
-        <Text style={styles.headerSub}>Discover all city services & features</Text>
+        <Text style={styles.headerTitle}>{t('exploreShahkot')}</Text>
+        <Text style={styles.headerSub}>{t('discoverServices')}</Text>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color={COLORS.textLight} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search services..."
+            placeholder={t('searchServices')}
             placeholderTextColor={COLORS.textLight}
             value={search}
             onChangeText={setSearch}
@@ -91,9 +96,9 @@ export default function ExploreScreen({ navigation }) {
         {/* Quick Actions */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickRow}>
           {[
-            { key: 'Jobs', label: 'Post Job', icon: 'briefcase', color: '#2563EB' },
-            { key: 'Market', label: 'Sell Item', icon: 'add-circle', color: '#FF6584' },
-            { key: 'AIChatbot', label: 'Ask AI', icon: 'sparkles', color: '#8B5CF6' },
+            { key: 'Jobs', label: t('postJob'), icon: 'briefcase', color: '#2563EB' },
+            { key: 'Market', label: t('sellItem'), icon: 'add-circle', color: '#FF6584' },
+            { key: 'AIChatbot', label: t('askAI'), icon: 'sparkles', color: '#8B5CF6' },
           ].map(a => (
             <TouchableOpacity key={a.key} style={styles.quickAction} onPress={() => navigation.navigate(a.key)}>
               <View style={[styles.quickActionIcon, { backgroundColor: a.color + '12' }]}>
@@ -135,7 +140,7 @@ export default function ExploreScreen({ navigation }) {
         {search.trim() && filtered.length === 0 && (
           <View style={styles.emptySearch}>
             <Ionicons name="search-outline" size={48} color={COLORS.textLight} />
-            <Text style={styles.emptyText}>No services found for "{search}"</Text>
+            <Text style={styles.emptyText}>{t('noServicesFound')} "{search}"</Text>
           </View>
         )}
       </ScrollView>

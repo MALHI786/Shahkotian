@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 import { COLORS } from '../config/constants';
 import { notificationsAPI } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function NotificationsScreen() {
+  const { t } = useLanguage();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -104,11 +106,11 @@ export default function NotificationsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          Notifications{notifications.filter(n => !n.read).length > 0 ? ` (${notifications.filter(n => !n.read).length})` : ''}
+          {t('notificationsTitle')}{notifications.filter(n => !n.read).length > 0 ? ` (${notifications.filter(n => !n.read).length})` : ''}
         </Text>
         {notifications.some(n => !n.read) && (
           <TouchableOpacity onPress={markAllRead}>
-            <Text style={styles.markAll}>Mark all read</Text>
+            <Text style={styles.markAll}>{t('markAllRead')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -122,7 +124,7 @@ export default function NotificationsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>🔕</Text>
-            <Text style={styles.emptyText}>No notifications yet</Text>
+            <Text style={styles.emptyText}>{t('noNotifications')}</Text>
           </View>
         }
       />

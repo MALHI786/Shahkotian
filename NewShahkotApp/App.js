@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { LanguageProvider } from './src/context/LanguageContext';
 import { COLORS } from './src/config/constants';
 import { initAds, onScreenView } from './src/utils/AdManager';
 
@@ -167,14 +168,16 @@ export default function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <NavigationContainer
-        ref={navigationRef}
-        onStateChange={() => onScreenView()}
-      >
-        <StatusBar style="light" />
-        <AppNavigator />
-      </NavigationContainer>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <NavigationContainer
+          ref={navigationRef}
+          onStateChange={() => onScreenView()}
+        >
+          <StatusBar style="light" />
+          <AppNavigator />
+        </NavigationContainer>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

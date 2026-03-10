@@ -3,21 +3,23 @@ import {
   View, Text, TouchableOpacity, StyleSheet, ScrollView,
 } from 'react-native';
 import { COLORS } from '../config/constants';
+import { useLanguage } from '../context/LanguageContext';
 
 const COMMUNITY_TABS = [
-  { key: 'rishta', label: 'Rishta', icon: '💑', desc: 'Find your match' },
-  { key: 'openchat', label: 'Open Chat', icon: '💬', desc: 'Discord-like chat' },
-  { key: 'dm', label: 'Messages', icon: '✉️', desc: 'Private messages' },
-  { key: 'ai', label: 'AI Bot', icon: '🤖', desc: 'Ask anything' },
+  { key: 'rishta', labelKey: 'rishta', icon: '💑', descKey: 'findYourMatch' },
+  { key: 'openchat', labelKey: 'discordChat', icon: '💬', descKey: 'openChatDesc' },
+  { key: 'dm', labelKey: 'messages', icon: '✉️', descKey: 'privateMsg' },
+  { key: 'ai', labelKey: 'aiBot', icon: '🤖', descKey: 'askAnythingAI' },
 ];
 
 export default function CommunityScreen({ navigation }) {
+  const { t } = useLanguage();
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Community</Text>
-        <Text style={styles.headerSub}>Connect with Shahkot</Text>
+        <Text style={styles.headerTitle}>{t('communityTitle')}</Text>
+        <Text style={styles.headerSub}>{t('connectShahkot')}</Text>
       </View>
 
       {/* Feature Cards */}
@@ -42,8 +44,8 @@ export default function CommunityScreen({ navigation }) {
               <Text style={styles.cardIconText}>{tab.icon}</Text>
             </View>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>{tab.label}</Text>
-              <Text style={styles.cardDesc}>{tab.desc}</Text>
+              <Text style={styles.cardTitle}>{t(tab.labelKey)}</Text>
+              <Text style={styles.cardDesc}>{t(tab.descKey)}</Text>
             </View>
             <Text style={styles.cardArrow}></Text>
           </TouchableOpacity>

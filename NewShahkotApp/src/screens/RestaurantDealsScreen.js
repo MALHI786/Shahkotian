@@ -10,9 +10,11 @@ import { COLORS } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
 import { restaurantsAPI } from '../services/api';
 import AdBanner from '../components/AdBanner';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function RestaurantDealsScreen({ navigation, route }) {
   const { isAdmin } = useAuth();
+  const { t } = useLanguage();
   const [restaurants, setRestaurants] = useState([]);
   const [allDeals, setAllDeals] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -124,30 +126,30 @@ export default function RestaurantDealsScreen({ navigation, route }) {
       }
 
       const res = await restaurantsAPI.adminCreate(formData);
-      Alert.alert('Created! 🎉', `${res.data.restaurant.name} added.\n\nLogin: ${res.data.restaurant.email}\nPassword: ${formPassword.trim()}\n\nShare these credentials with the restaurant owner.`);
+      Alert.alert(t('done') + ' 🎉', `${res.data.restaurant.name} added.\n\nLogin: ${res.data.restaurant.email}\nPassword: ${formPassword.trim()}\n\nShare these credentials with the restaurant owner.`);
       setShowAddRestaurant(false);
       resetForm();
       loadData();
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.error || 'Failed to create restaurant.');
+      Alert.alert(t('error'), err.response?.data?.error || 'Failed to create restaurant.');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteRestaurant = (id, name) => {
-    Alert.alert('Delete Restaurant', `Remove "${name}" and all its deals?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('deleteRestaurant'), `Remove "${name}" and all its deals?`, [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive',
+        text: t('delete'), style: 'destructive',
         onPress: async () => {
           try {
             await restaurantsAPI.adminDelete(id);
-            Alert.alert('Deleted', 'Restaurant removed.');
+            Alert.alert(t('deleted'), t('restaurantDeleted') || 'Restaurant removed.');
             loadData();
             setSelectedRestaurant(null);
           } catch (err) {
-            Alert.alert('Error', 'Failed to delete.');
+            Alert.alert(t('error'), 'Failed to delete.');
           }
         },
       },
@@ -159,7 +161,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
       await restaurantsAPI.adminUpdate(id, { isActive: !currentActive });
       loadData();
     } catch {
-      Alert.alert('Error', 'Failed to update.');
+      Alert.alert(t('error'), 'Failed to update.');
     }
   };
 
@@ -171,7 +173,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
   // ── Owner: login ─────────────────────────────────────────────────────────
   const handleOwnerLogin = async () => {
     if (!ownerEmail.trim() || !ownerPassword.trim()) {
-      return Alert.alert('Required', 'Please enter your email and password.');
+      return Alert.alert(t('required'), 'Please enter your email and password.');
     }
     setOwnerLoginLoading(true);
     try {
@@ -183,7 +185,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
       setShowOwnerLoginModal(false);
       setActiveTab('owner');
     } catch (err) {
-      Alert.alert('Login Failed', err.response?.data?.error || 'Invalid email or password.');
+      Alert.alert(t('loginFailed'), err.response?.data?.error || 'Invalid email or password.');
     } finally {
       setOwnerLoginLoading(false);
     }
@@ -205,7 +207,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
 
   // ── Owner: add deal ───────────────────────────────────────────────────────
   const handleAddDeal = async () => {
-    if (!dealTitle.trim()) return Alert.alert('Required', 'Deal title is required.');
+    if (!dealTitle.trim()) return Alert.alert(t('required'), 'Deal title is required.');
     setDealSubmitting(true);
     try {
       const fd = new FormData();
@@ -217,29 +219,29 @@ export default function RestaurantDealsScreen({ navigation, route }) {
         fd.append('image', { uri: dealImage.uri, type: 'image/jpeg', name: 'deal.jpg' });
       }
       await restaurantsAPI.ownerCreateDeal(ownerToken, fd);
-      Alert.alert('Done! 🎉', 'Deal added successfully.');
+      Alert.alert(t('done') + ' 🎉', t('dealAdded'));
       setShowAddDeal(false);
       setDealTitle(''); setDealDesc(''); setDealPrice(''); setDealOriginalPrice(''); setDealImage(null);
       reloadOwnerProfile();
       loadData();
     } catch (err) {
-      Alert.alert('Error', err.response?.data?.error || 'Failed to add deal.');
+      Alert.alert(t('error'), err.response?.data?.error || 'Failed to add deal.');
     } finally {
       setDealSubmitting(false);
     }
   };
 
   const handleDeleteDeal = (dealId) => {
-    Alert.alert('Delete Deal', 'Remove this deal?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('deleteDeal') || 'Delete Deal', t('deleteDealConfirm') || 'Remove this deal?', [
+      { text: t('cancel'), style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive', onPress: async () => {
+        text: t('delete'), style: 'destructive', onPress: async () => {
           try {
             await restaurantsAPI.ownerDeleteDeal(ownerToken, dealId);
             reloadOwnerProfile();
             loadData();
           } catch {
-            Alert.alert('Error', 'Failed to delete deal.');
+            Alert.alert(t('error'), 'Failed to delete deal.');
           }
         },
       },
@@ -313,7 +315,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
         <View style={{ flex: 1 }}>
           <Text style={styles.restName}>{item.name}</Text>
           <Text style={styles.restAddress} numberOfLines={1}>📍 {item.address}</Text>
-          <Text style={styles.restDeals}>{item._count?.deals || 0} active deals</Text>
+              <Text style={styles.restDeals}>{item._count?.deals || 0} {t('activeDeals')}</Text>
         </View>
       </View>
       {item.phone && (
@@ -366,7 +368,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="chevron-back" size={24} color={COLORS.white} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>🍽️ Restaurants & Deals</Text>
+        <Text style={styles.headerTitle}>{t('restaurantsTitle')}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -402,8 +404,8 @@ export default function RestaurantDealsScreen({ navigation, route }) {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Text style={{ fontSize: 48, marginBottom: 12 }}>🍽️</Text>
-              <Text style={styles.emptyText}>No deals available yet</Text>
-              <Text style={styles.emptySubText}>Check back later for amazing offers!</Text>
+              <Text style={styles.emptyText}>{t('noDealsYet')}</Text>
+              <Text style={styles.emptySubText}>{t('checkBackLaterDeals')}</Text>
             </View>
           }
         />
@@ -430,8 +432,8 @@ export default function RestaurantDealsScreen({ navigation, route }) {
                 onPress={() => setShowOwnerLoginModal(true)}
                 style={{ alignItems: 'center', paddingVertical: 24 }}
               >
-                <Text style={{ fontSize: 12, color: COLORS.textLight }}>Are you a restaurant owner?</Text>
-                <Text style={{ fontSize: 13, color: COLORS.primary, fontWeight: '600', marginTop: 2 }}>Login to manage your deals →</Text>
+                <Text style={{ fontSize: 12, color: COLORS.textLight }}>{t('restaurantOwnerPrompt')}</Text>
+                <Text style={{ fontSize: 13, color: COLORS.primary, fontWeight: '600', marginTop: 2 }}>{t('loginToManage')}</Text>
               </TouchableOpacity>
             ) : null
           }
@@ -453,7 +455,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
 
           <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddDeal(true)}>
             <Ionicons name="add-circle" size={22} color={COLORS.white} />
-            <Text style={styles.addBtnText}>Add New Deal</Text>
+            <Text style={styles.addBtnText}>{t('addNewDeal')}</Text>
           </TouchableOpacity>
 
           <Text style={[styles.sectionTitle, { marginTop: 8 }]}>
@@ -499,10 +501,10 @@ export default function RestaurantDealsScreen({ navigation, route }) {
         <ScrollView contentContainerStyle={{ padding: 16 }}>
           <TouchableOpacity style={styles.addBtn} onPress={() => setShowAddRestaurant(true)}>
             <Ionicons name="add-circle" size={22} color={COLORS.white} />
-            <Text style={styles.addBtnText}>Add New Restaurant</Text>
+            <Text style={styles.addBtnText}>{t('addNewRestaurant')}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.sectionTitle}>All Restaurants ({restaurants.length})</Text>
+          <Text style={styles.sectionTitle}>{t('allRestaurants')} ({restaurants.length})</Text>
           {restaurants.map((r) => (
             <View key={r.id} style={styles.adminCard}>
               <Text style={styles.adminCardName}>{r.name}</Text>
@@ -585,7 +587,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
                 ))}
 
                 {(!selectedRestaurant.deals || selectedRestaurant.deals.length === 0) && (
-                  <Text style={styles.emptySubText}>No active deals right now</Text>
+                  <Text style={styles.emptySubText}>{t('noActiveDeals')}</Text>
                 )}
               </ScrollView>
             )}
@@ -606,8 +608,8 @@ export default function RestaurantDealsScreen({ navigation, route }) {
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                <TextInput style={styles.input} placeholder="Restaurant Name *" value={formName} onChangeText={setFormName} placeholderTextColor={COLORS.textLight} />
-                <TextInput style={styles.input} placeholder="Address *" value={formAddress} onChangeText={setFormAddress} placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} placeholder={t('restaurantName')} value={formName} onChangeText={setFormName} placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} placeholder={t('restaurantAddress')} value={formAddress} onChangeText={setFormAddress} placeholderTextColor={COLORS.textLight} />
                 <TextInput style={styles.input} placeholder="Phone" value={formPhone} onChangeText={setFormPhone} keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
                 <TextInput style={styles.input} placeholder="WhatsApp" value={formWhatsapp} onChangeText={setFormWhatsapp} keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
                 <TextInput style={[styles.input, { height: 80 }]} placeholder="Description" value={formDesc} onChangeText={setFormDesc} multiline placeholderTextColor={COLORS.textLight} />
@@ -651,7 +653,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
                 </TouchableOpacity>
               </View>
               <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 20, lineHeight: 18 }}>
-                Login with the credentials provided by the admin to manage your restaurant's deals.
+                {t('ownerLoginSubtitle')}
               </Text>
               <TextInput
                 style={styles.input}
@@ -677,7 +679,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
               >
                 {ownerLoginLoading
                   ? <ActivityIndicator color={COLORS.white} />
-                  : <Text style={styles.submitBtnText}>Login as Restaurant Owner</Text>
+                  : <Text style={styles.submitBtnText}>{t('loginAsBrandOwner') || 'Login as Restaurant Owner'}</Text>
                 }
               </TouchableOpacity>
             </View>
@@ -697,7 +699,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
                 </TouchableOpacity>
               </View>
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                <TextInput style={styles.input} placeholder="Deal Title *" value={dealTitle} onChangeText={setDealTitle} placeholderTextColor={COLORS.textLight} />
+                <TextInput style={styles.input} placeholder={t('dealTitle')} value={dealTitle} onChangeText={setDealTitle} placeholderTextColor={COLORS.textLight} />
                 <TextInput style={[styles.input, { height: 80 }]} placeholder="Description (optional)" value={dealDesc} onChangeText={setDealDesc} multiline placeholderTextColor={COLORS.textLight} />
                 <TextInput style={styles.input} placeholder="Price (e.g. Rs. 500 or 30% OFF)" value={dealPrice} onChangeText={setDealPrice} placeholderTextColor={COLORS.textLight} />
                 <TextInput style={styles.input} placeholder="Original Price (e.g. Rs. 800)" value={dealOriginalPrice} onChangeText={setDealOriginalPrice} placeholderTextColor={COLORS.textLight} />
@@ -710,7 +712,7 @@ export default function RestaurantDealsScreen({ navigation, route }) {
                   onPress={handleAddDeal}
                   disabled={dealSubmitting}
                 >
-                  {dealSubmitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitBtnText}>Add Deal</Text>}
+                  {dealSubmitting ? <ActivityIndicator color={COLORS.white} /> : <Text style={styles.submitBtnText}>{t('addDealBtn')}</Text>}
                 </TouchableOpacity>
                 <View style={{ height: 40 }} />
               </ScrollView>

@@ -9,6 +9,7 @@ import { COLORS, APP_NAME } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
 import { listingsAPI, newsAPI, tournamentsAPI, jobsAPI, notificationsAPI } from '../services/api';
 import AdBanner from '../components/AdBanner';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const CARD_W = (width - 48) / 2;
@@ -16,6 +17,7 @@ const HOME_CACHE_KEY = '@home_cache';
 
 export default function HomeScreen({ navigation }) {
   const { user, isAdmin } = useAuth();
+  const { t } = useLanguage();
   const [trendingListings, setTrendingListings] = useState([]);
   const [latestNews, setLatestNews] = useState([]);
   const [upcomingMatches, setUpcomingMatches] = useState([]);
@@ -26,9 +28,9 @@ export default function HomeScreen({ navigation }) {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return t('goodMorning');
+    if (hour < 17) return t('goodAfternoon');
+    return t('goodEvening');
   };
 
   useEffect(() => {
@@ -96,22 +98,22 @@ export default function HomeScreen({ navigation }) {
   }, []);
 
   const QUICK_ACCESS = [
-    { key: 'Market', label: 'Buy & Sell', icon: 'cart', color: '#FF6584' },
-    { key: 'Jobs', label: 'Jobs', icon: 'briefcase', color: '#2563EB' },
-    { key: 'News & Articles', label: 'News', icon: 'newspaper', color: '#8B5CF6' },
-    { key: 'Tournaments', label: 'Sports', icon: 'trophy', color: '#10B981' },
-    { key: 'Bazar', label: 'Bazar', icon: 'storefront', color: '#3B82F6' },
-    { key: 'RestaurantDeals', label: 'Food Deals', icon: 'restaurant', color: '#F97316' },
-    { key: 'ClothBrands', label: 'Brands', icon: 'shirt', color: '#8B5CF6' },
-    { key: 'BloodDonation', label: 'Blood', icon: 'water', color: '#B91C1C' },
-    { key: 'Doctors', label: 'Doctors', icon: 'medkit', color: '#E11D48' },
-    { key: 'Weather', label: 'Weather', icon: 'partly-sunny', color: '#0EA5E9' },
+    { key: 'Market', label: t('buySell'), icon: 'cart', color: '#FF6584' },
+    { key: 'Jobs', label: t('jobs'), icon: 'briefcase', color: '#2563EB' },
+    { key: 'News & Articles', label: t('news'), icon: 'newspaper', color: '#8B5CF6' },
+    { key: 'Tournaments', label: t('sports'), icon: 'trophy', color: '#10B981' },
+    { key: 'Bazar', label: t('bazar'), icon: 'storefront', color: '#3B82F6' },
+    { key: 'RestaurantDeals', label: t('foodDeals'), icon: 'restaurant', color: '#F97316' },
+    { key: 'ClothBrands', label: t('brands'), icon: 'shirt', color: '#8B5CF6' },
+    { key: 'BloodDonation', label: t('blood'), icon: 'water', color: '#B91C1C' },
+    { key: 'Doctors', label: t('doctors'), icon: 'medkit', color: '#E11D48' },
+    { key: 'Weather', label: t('weather'), icon: 'partly-sunny', color: '#0EA5E9' },
   ];
 
   const SERVICES_ROW = [
-    { key: 'Explore', label: 'Explore All', icon: 'compass', color: COLORS.primary },
-    { key: 'Community', label: 'Community', icon: 'people', color: '#14B8A6' },
-    { key: 'Helpline', label: 'Helplines', icon: 'call', color: '#EF4444' },
+    { key: 'Explore', label: t('exploreAll'), icon: 'compass', color: COLORS.primary },
+    { key: 'Community', label: t('community'), icon: 'people', color: '#14B8A6' },
+    { key: 'Helpline', label: t('helplines'), icon: 'call', color: '#EF4444' },
   ];
 
   if (loading && !refreshing) {
@@ -153,7 +155,7 @@ export default function HomeScreen({ navigation }) {
           {/* Search Bar */}
           <TouchableOpacity style={styles.searchBar} onPress={() => navigation.navigate('Explore')} activeOpacity={0.8}>
             <Ionicons name="search" size={18} color="rgba(255,255,255,0.6)" />
-            <Text style={styles.searchPlaceholder}>Search Shahkot services...</Text>
+            <Text style={styles.searchPlaceholder}>{t('searchShahkot')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -162,8 +164,8 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.locationLeft}>
             <Ionicons name="location" size={20} color={COLORS.primary} />
             <View style={{ marginLeft: 10 }}>
-              <Text style={styles.locationTitle}>Shahkot, Punjab</Text>
-              <Text style={styles.locationSub}>Your community is active</Text>
+              <Text style={styles.locationTitle}>{t('shahkotPunjab')}</Text>
+              <Text style={styles.locationSub}>{t('communityActive')}</Text>
             </View>
           </View>
           <View style={styles.livePulse}>
@@ -174,7 +176,7 @@ export default function HomeScreen({ navigation }) {
 
         {/* Quick Access Grid */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Access</Text>
+          <Text style={styles.sectionTitle}>{t('quickAccess')}</Text>
           <View style={styles.quickGrid}>
             {QUICK_ACCESS.map((item) => (
               <TouchableOpacity key={item.key} style={styles.quickItem} onPress={() => navigation.navigate(item.key)} activeOpacity={0.7}>
