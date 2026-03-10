@@ -4,6 +4,7 @@ import {
     StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView,
     Platform, Image, Modal, Dimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
@@ -12,6 +13,7 @@ import { dmAPI } from '../services/api';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function DMChatScreen({ route, navigation }) {
+    const insets = useSafeAreaInsets();
     const { user } = useAuth();
     const { chatId, otherUser, source } = route.params || {};
     const [messages, setMessages] = useState([]);
@@ -243,7 +245,7 @@ export default function DMChatScreen({ route, navigation }) {
             )}
 
             {/* Input Bar */}
-            <View style={styles.inputBar}>
+            <View style={[styles.inputBar, { paddingBottom: insets.bottom + 8 }]}>
                 <TouchableOpacity
                     style={styles.imageBtn}
                     onPress={pickAndSendImage}

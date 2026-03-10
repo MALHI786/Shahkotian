@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../config/constants';
 import { chatbotAPI } from '../services/api';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const WELCOME_MESSAGE = {
     id: 'welcome',
@@ -13,6 +14,7 @@ const WELCOME_MESSAGE = {
 };
 
 export default function AIChatbotScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const [messages, setMessages] = useState([WELCOME_MESSAGE]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -131,7 +133,7 @@ export default function AIChatbotScreen({ navigation }) {
             )}
 
             {/* Input */}
-            <View style={styles.inputBar}>
+            <View style={[styles.inputBar, { paddingBottom: 14 + insets.bottom }]}>
                 <TextInput
                     style={styles.input}
                     value={input}

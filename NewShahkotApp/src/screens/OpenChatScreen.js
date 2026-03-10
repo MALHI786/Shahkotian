@@ -3,6 +3,7 @@ import {
     View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image,
     KeyboardAvoidingView, Platform, Alert, Modal, ActivityIndicator, Keyboard, Share,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -33,6 +34,7 @@ const COLORS = {
 const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡', '🔥', '👏'];
 
 export default function OpenChatScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const { user } = useAuth();
     const [messages, setMessages]             = useState([]);
     const [reactionsMap, setReactionsMap]     = useState({}); // separate state, survives polls
@@ -628,7 +630,7 @@ export default function OpenChatScreen({ navigation }) {
             )}
 
             {/* Input bar — with voice recording */}
-            <View style={styles.inputBar}>
+            <View style={[styles.inputBar, { paddingBottom: Platform.OS === 'ios' ? 24 : 8 + insets.bottom }]}>
                 {isRecording ? (
                     // Recording UI
                     <View style={styles.recordingBar}>

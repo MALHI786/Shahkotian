@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { LanguageProvider } from './src/context/LanguageContext';
 import { COLORS } from './src/config/constants';
 import { initAds, onScreenView } from './src/utils/AdManager';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Screens
 import SplashScreen from './src/screens/SplashScreen';
@@ -44,6 +45,7 @@ const Tab = createBottomTabNavigator();
 
 // Bottom Tab Navigator — 5 Tabs: Home, Marketplace, Explore, Community, Profile
 function MainTabs() {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={{
@@ -53,9 +55,9 @@ function MainTabs() {
         tabBarStyle: {
           backgroundColor: COLORS.surface,
           borderTopColor: COLORS.border,
-          paddingBottom: 6,
+          paddingBottom: 6 + insets.bottom,
           paddingTop: 6,
-          height: 62,
+          height: 62 + insets.bottom,
           elevation: 12,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -2 },
@@ -170,13 +172,15 @@ export default function App() {
   return (
     <LanguageProvider>
       <AuthProvider>
-        <NavigationContainer
-          ref={navigationRef}
-          onStateChange={() => onScreenView()}
-        >
-          <StatusBar style="light" />
-          <AppNavigator />
-        </NavigationContainer>
+        <SafeAreaProvider>
+          <NavigationContainer
+            ref={navigationRef}
+            onStateChange={() => onScreenView()}
+          >
+            <StatusBar style="light" />
+            <AppNavigator />
+          </NavigationContainer>
+        </SafeAreaProvider>
       </AuthProvider>
     </LanguageProvider>
   );
