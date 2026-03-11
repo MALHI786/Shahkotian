@@ -6,6 +6,63 @@ const { authenticate, adminOnly } = require('../middleware/auth');
 
 const router = express.Router();
 
+// ---------- Replication helpers (multi-DB) ----------
+async function replicateDoctorToOtherDBs(doctor) {
+  try {
+    const manager = prisma.__dbManager;
+    if (!manager || !manager.databases || manager.databases.length <= 1) return;
+    for (const db of manager.databases) {
+      try {
+        if (db.index === manager.activeIndex) continue;
+        // ensure client
+        if (!db.client) {
+          db.client = manager.createClient(db.url);
+          await db.client.$connect();
+        }
+        // Upsert by id to replicate
+        const client = db.client;
+        const data = { ...doctor };
+        // Remove nested relations to avoid nested create errors
+        delete data.appointments;
+        // Prisma client on other DBs may not accept undefined values for Date objects;
+        // ensure createdAt/updatedAt are passed as ISO strings
+        if (data.createdAt) data.createdAt = new Date(data.createdAt);
+        if (data.updatedAt) data.updatedAt = new Date(data.updatedAt);
+        await client.doctor.upsert({
+          where: { id: doctor.id },
+          create: data,
+          update: data,
+        });
+      } catch (e) {
+        // don't fail the whole operation; log and continue
+        console.warn(`[DB REPL] replicateDoctor to DB#${db.index} failed: ${e.message}`);
+      }
+    }
+  } catch (e) {
+    console.warn('[DB REPL] replication error:', e.message);
+  }
+}
+
+async function deleteDoctorFromAllDBsById(id) {
+  try {
+    const manager = prisma.__dbManager;
+    if (!manager || !manager.databases || manager.databases.length === 0) return;
+    for (const db of manager.databases) {
+      try {
+        if (!db.client) {
+          db.client = manager.createClient(db.url);
+          await db.client.$connect();
+        }
+        await db.client.doctor.delete({ where: { id } });
+      } catch (e) {
+        // ignore P2025 (not found) and continue
+        if (e.code !== 'P2025') console.warn(`[DB REPL] delete doctor on DB#${db.index} failed: ${e.message}`);
+      }
+    }
+  } catch (e) {
+    console.warn('[DB REPL] delete replication error:', e.message);
+  }
+}
 // ── Doctor Auth Middleware ────────────────────────────────────────────
 function authenticateDoctor(req, res, next) {
   try {
@@ -332,6 +389,8 @@ router.post('/', authenticate, adminOnly, async (req, res) => {
         weekdays: weekdays || null,
       },
     });
+    // Replicate to other DBs in background (best-effort)
+    replicateDoctorToOtherDBs(doctor).catch(() => {});
 
     res.status(201).json({ message: 'Doctor added successfully.', doctor });
   } catch (error) {
@@ -385,6 +444,8 @@ router.put('/:id', authenticate, adminOnly, async (req, res) => {
     }
 
     const doctor = await prisma.doctor.update({ where: { id: req.params.id }, data });
+    // Replicate update across other DBs
+    replicateDoctorToOtherDBs(doctor).catch(() => {});
     res.json({ message: 'Doctor updated.', doctor });
   } catch (error) {
     console.error('Update doctor error:', error);
@@ -401,6 +462,8 @@ router.delete('/:id', authenticate, adminOnly, async (req, res) => {
     if (!existing) return res.status(404).json({ error: 'Doctor not found.' });
     await prisma.appointment.deleteMany({ where: { doctorId: req.params.id } });
     await prisma.doctor.delete({ where: { id: req.params.id } });
+    // Also delete from other DBs (best-effort)
+    deleteDoctorFromAllDBsById(req.params.id).catch(() => {});
     res.json({ message: 'Doctor deleted.' });
   } catch (error) {
     console.error('Delete doctor error:', error);
