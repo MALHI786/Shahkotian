@@ -46,12 +46,19 @@ router.delete('/fcm-token', authenticate, async (req, res) => {
 
 /**
  * GET /api/notifications
- * Get user's notifications
+ * Get user's notifications (also auto-cleans notifications older than 30 days)
  */
 router.get('/', authenticate, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = 20;
+
+    // Auto-delete notifications older than 30 days (fire-and-forget)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    prisma.notification.deleteMany({
+      where: { userId: req.user.id, createdAt: { lt: thirtyDaysAgo } },
+    }).catch(() => {});
 
     const [notifications, total, unreadCount] = await Promise.all([
       prisma.notification.findMany({

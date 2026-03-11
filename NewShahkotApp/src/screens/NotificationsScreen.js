@@ -43,7 +43,7 @@ export default function NotificationsScreen() {
     try {
       await notificationsAPI.markRead(id);
       setNotifications(prev =>
-        prev.map(n => (n.id === id ? { ...n, read: true } : n))
+        prev.map(n => (n.id === id ? { ...n, isRead: true } : n))
       );
     } catch (err) {}
   };
@@ -51,7 +51,7 @@ export default function NotificationsScreen() {
   const markAllRead = async () => {
     try {
       await notificationsAPI.markAllRead();
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (err) {}
   };
 
@@ -79,17 +79,17 @@ export default function NotificationsScreen() {
 
   const renderNotification = ({ item }) => (
     <TouchableOpacity
-      style={[styles.card, !item.read && styles.unread]}
+      style={[styles.card, !item.isRead && styles.unread]}
       onPress={() => markAsRead(item.id)}
       activeOpacity={0.7}
     >
       <Text style={styles.icon}>{getIcon(item.type)}</Text>
       <View style={styles.content}>
-        <Text style={[styles.title, !item.read && styles.unreadText]}>{item.title}</Text>
-        <Text style={styles.message}>{item.message}</Text>
+        <Text style={[styles.title, !item.isRead && styles.unreadText]}>{item.title}</Text>
+        <Text style={styles.message} numberOfLines={3}>{item.body}</Text>
         <Text style={styles.time}>{formatTime(item.createdAt)}</Text>
       </View>
-      {!item.read && <View style={styles.dot} />}
+      {!item.isRead && <View style={styles.dot} />}
     </TouchableOpacity>
   );
 
@@ -106,9 +106,9 @@ export default function NotificationsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>
-          {t('notificationsTitle')}{notifications.filter(n => !n.read).length > 0 ? ` (${notifications.filter(n => !n.read).length})` : ''}
+          {t('notificationsTitle')}{notifications.filter(n => !n.isRead).length > 0 ? ` (${notifications.filter(n => !n.isRead).length})` : ''}
         </Text>
-        {notifications.some(n => !n.read) && (
+        {notifications.some(n => !n.isRead) && (
           <TouchableOpacity onPress={markAllRead}>
             <Text style={styles.markAll}>{t('markAllRead')}</Text>
           </TouchableOpacity>

@@ -12,6 +12,7 @@ import { doctorsAPI, appointmentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AdBanner from '../components/AdBanner';
+import ImageViewer from '../components/ImageViewer';
 
 const { width } = Dimensions.get('window');
 
@@ -54,6 +55,10 @@ export default function DoctorsScreen({ navigation, route }) {
   const [showDoctorLoginModal, setShowDoctorLoginModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Image viewer for payment proof
+  const [viewerImages, setViewerImages] = useState([]);
+  const [viewerVisible, setViewerVisible] = useState(false);
 
   // User appointments
   const [myAppointments, setMyAppointments] = useState([]);
@@ -415,6 +420,11 @@ export default function DoctorsScreen({ navigation, route }) {
         <Text style={styles.addressText}>📍 {item.address}</Text>
         {item.timings && <Text style={styles.timingsText}>🕐 {item.timings}</Text>}
         {item.fee != null && <Text style={styles.feeText}>💰 Rs. {item.fee}</Text>}
+        {item.onlineBooking && item.currentToken > 0 && (
+          <View style={styles.liveTokenSmall}>
+            <Text style={styles.liveTokenSmallText}>{'🔴 Now serving: Token #'}{item.currentToken}</Text>
+          </View>
+        )}
         <View style={styles.contactRow}>
           <TouchableOpacity style={styles.callButton} onPress={() => callDoctor(item.phone)}>
             <Text style={styles.callText}>📞 Call</Text>
@@ -466,7 +476,7 @@ export default function DoctorsScreen({ navigation, route }) {
           </View>
         )}
 
-        {item.fee && <Text style={styles.apptFee}>💰 Fee: Rs. {item.fee}</Text>}
+        {item.fee != null && <Text style={styles.apptFee}>{'💰 Fee: Rs. '}{item.fee}</Text>}
 
         {item.status === 'APPROVED' && (
           <View style={styles.paymentInfo}>
@@ -477,8 +487,8 @@ export default function DoctorsScreen({ navigation, route }) {
               Account: {item.paymentAccount || item.doctor?.paymentAccount || 'N/A'}
             </Text>
             <TouchableOpacity style={styles.uploadBtn} onPress={() => setShowPaymentModal(item)}>
-              <Ionicons name="cloud-upload" size={18} color={COLORS.white} />
-              <Text style={styles.uploadBtnText}>Upload Payment Proof</Text>
+              <Ionicons name="image-outline" size={16} color={COLORS.white} />
+              <Text style={styles.uploadBtnText}>Select Screenshot</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -566,12 +576,13 @@ export default function DoctorsScreen({ navigation, route }) {
   };
 
   // ── Render: Tabs ───────────────────────────────────────────────────
-  const tabs = [
-    { key: 'doctors', label: '🏥 Doctors' },
-    { key: 'bookings', label: '📋 Bookings' },
-    ...(doctorToken ? [{ key: 'dashboard', label: '👨‍⚕️ Dashboard' }] : []),
-    ...(isAdmin ? [{ key: 'admin', label: '⚙️ Admin' }] : []),
-  ];
+  const tabs = doctorToken
+    ? [{ key: 'dashboard', label: '👨‍⚕️ Dashboard' }]
+    : [
+        { key: 'doctors', label: '🏥 Doctors' },
+        ...(user ? [{ key: 'bookings', label: '📋 Bookings' }] : []),
+        ...(isAdmin ? [{ key: 'admin', label: '⚙️ Admin' }] : []),
+      ];
 
   // ── Render: Doctor Dashboard ───────────────────────────────────────
   const renderDashboard = () => {
@@ -684,7 +695,10 @@ export default function DoctorsScreen({ navigation, route }) {
                 </View>
 
                 {a.paymentProof && (
-                  <Image source={{ uri: a.paymentProof }} style={styles.proofThumb} />
+                  <TouchableOpacity onPress={() => { setViewerImages([a.paymentProof]); setViewerVisible(true); }}>
+                    <Image source={{ uri: a.paymentProof }} style={styles.proofThumb} />
+                    <Text style={{ fontSize: 11, color: COLORS.primary, textAlign: 'center', marginTop: 2 }}>{'Tap to view full'}</Text>
+                  </TouchableOpacity>
                 )}
 
                 <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
@@ -1091,6 +1105,14 @@ export default function DoctorsScreen({ navigation, route }) {
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Image Viewer for payment proof */}
+      <ImageViewer
+        images={viewerImages}
+        visible={viewerVisible}
+        initialIndex={0}
+        onClose={() => setViewerVisible(false)}
+      />
     </View>
   );
 }
@@ -1171,6 +1193,8 @@ const styles = StyleSheet.create({
   tokenEst: { fontSize: 11, color: COLORS.textSecondary },
   liveToken: { backgroundColor: '#FEE2E2', borderRadius: 8, padding: 8, marginTop: 8 },
   liveTokenText: { fontSize: 12, color: '#EF4444', fontWeight: '600', textAlign: 'center' },
+  liveTokenSmall: { backgroundColor: '#FEE2E2', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, marginBottom: 8, alignSelf: 'flex-start' },
+  liveTokenSmallText: { fontSize: 11, color: '#EF4444', fontWeight: '600' },
   apptFee: { fontSize: 13, color: COLORS.primary, fontWeight: '600', marginTop: 6 },
   paymentInfo: { backgroundColor: '#EFF6FF', borderRadius: 10, padding: 12, marginTop: 10 },
   paymentLabel: { fontSize: 14, fontWeight: '700', color: '#3B82F6', marginBottom: 4 },

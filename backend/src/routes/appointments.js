@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../config/database');
 const { authenticate } = require('../middleware/auth');
 const { sendPushToUser } = require('../utils/pushNotification');
+const { sendEmail } = require('../utils/email');
 const { uploadSingle } = require('../utils/upload');
 const { uploadToCloudinary } = require('../utils/cloudinaryUpload');
 
@@ -347,6 +348,29 @@ router.put('/:id/verify-payment', authenticateDoctor, async (req, res) => {
       `Your token number is #${tokenNumber}.\nEstimated time: ${estimatedTime || 'TBD'}\nDoctor: Dr. ${appt.doctor.name}`,
       { type: 'PAYMENT_CONFIRMED', appointmentId: appt.id, tokenNumber: String(tokenNumber) }
     );
+
+    // Send confirmation email with token details
+    const user = await prisma.user.findUnique({ where: { id: appt.userId }, select: { email: true, name: true } });
+    if (user?.email) {
+      const html = `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+          <div style="background:linear-gradient(135deg,#10B981,#059669);padding:30px;border-radius:10px 10px 0 0;text-align:center;">
+            <h1 style="color:#fff;margin:0;">🎫 Token Confirmed!</h1>
+          </div>
+          <div style="background:#f9f9f9;padding:30px;border-radius:0 0 10px 10px;">
+            <h2 style="color:#333;">Hello ${user.name || 'Patient'},</h2>
+            <p>Your appointment with <strong>Dr. ${appt.doctor.name}</strong> has been confirmed.</p>
+            <div style="background:#fff;border:2px solid #10B981;border-radius:10px;padding:20px;text-align:center;margin:16px 0;">
+              <p style="margin:0;font-size:14px;color:#666;">Your Token Number</p>
+              <h1 style="margin:8px 0;font-size:48px;color:#10B981;">#${tokenNumber}</h1>
+              <p style="margin:0;font-size:14px;color:#666;">Estimated Time: ${estimatedTime || 'TBD'}</p>
+            </div>
+            <p style="color:#666;">Fee: Rs. ${appt.fee || appt.doctor.fee || 'N/A'}</p>
+            <p style="color:#888;font-size:12px;">Please arrive on time. You can track the live token in the app.</p>
+          </div>
+        </div>`;
+      sendEmail(user.email, `Token #${tokenNumber} Confirmed - Dr. ${appt.doctor.name}`, html).catch(e => console.error('Token email error:', e));
+    }
 
     res.json({ message: 'Payment verified, token assigned.', appointment: updated });
   } catch (error) {
