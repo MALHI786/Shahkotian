@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import {
-    View, Modal, StyleSheet, TouchableOpacity, Text,
-    Dimensions, FlatList, StatusBar,
+    View, Modal, StyleSheet, TouchableOpacity, Text, Image,
+    Dimensions, FlatList, StatusBar, ScrollView,
 } from 'react-native';
-import { Image } from 'expo-image';
-import { ReactNativeZoomableView } from '@openspacelabs/react-native-zoomable-view';
 import { COLORS } from '../config/constants';
 
 const { width, height } = Dimensions.get('window');
@@ -44,21 +42,20 @@ export default function ImageViewer({ images, visible, initialIndex, onClose }) 
                     keyExtractor={(item, index) => `image-${index}`}
                     renderItem={({ item }) => (
                         <View style={styles.imageContainer}>
-                            <ReactNativeZoomableView
-                                maxZoom={4}
-                                minZoom={1}
-                                zoomStep={0.5}
-                                initialZoom={1}
-                                bindToBorders={true}
-                                style={styles.zoomView}
+                            <ScrollView
+                                maximumZoomScale={4}
+                                minimumZoomScale={1}
+                                showsVerticalScrollIndicator={false}
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.zoomView}
+                                centerContent
                             >
                                 <Image
                                     source={{ uri: item }}
                                     style={styles.image}
-                                    contentFit="contain"
-                                    transition={200}
+                                    resizeMode="contain"
                                 />
-                            </ReactNativeZoomableView>
+                            </ScrollView>
                         </View>
                     )}
                 />
@@ -116,12 +113,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     zoomView: {
-        width: '100%',
-        height: '100%',
+        width,
+        height: height - 200,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     image: {
-        width: '100%',
-        height: '100%',
+        width,
+        height: height - 200,
     },
     dots: {
         flexDirection: 'row',
