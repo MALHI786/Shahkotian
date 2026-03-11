@@ -211,7 +211,7 @@ export default function LoginScreen({ navigation }) {
             const brandRes = await clothBrandsAPI.ownerLogin({ email: email.trim(), password: password.trim() });
             const brandToken = brandRes.data.token;
             const brandProfileRes = await clothBrandsAPI.ownerProfile(brandToken);
-            navigation.navigate('ClothBrandDeals', { ownerToken: brandToken, ownerProfile: brandProfileRes.data });
+            navigation.navigate('ClothBrands', { ownerToken: brandToken, ownerProfile: brandProfileRes.data });
             return;
           } catch (_3) {
             // Not a cloth brand owner either — show original error
