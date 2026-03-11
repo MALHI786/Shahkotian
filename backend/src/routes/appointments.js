@@ -310,15 +310,18 @@ router.put('/:id/verify-payment', authenticateDoctor, async (req, res) => {
     const dayEnd = new Date(dayStart);
     dayEnd.setDate(dayEnd.getDate() + 1);
 
-    const confirmedCount = await prisma.appointment.count({
+    // Use MAX(tokenNumber) across ALL statuses so that completed/no-show
+    // appointments don't cause token numbers to be re-assigned.
+    const maxResult = await prisma.appointment.aggregate({
       where: {
         doctorId: req.doctorId,
         appointmentDate: { gte: dayStart, lt: dayEnd },
-        status: 'CONFIRMED',
+        tokenNumber: { not: null },
       },
+      _max: { tokenNumber: true },
     });
 
-    const tokenNumber = confirmedCount + 1;
+    const tokenNumber = (maxResult._max.tokenNumber || 0) + 1;
     const estimatedTime = calcEstimatedTime(
       appt.doctor.startTime,
       tokenNumber,
