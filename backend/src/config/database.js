@@ -229,6 +229,23 @@ function getAllClients(manager) {
     .map(db => db.client);
 }
 
+// Lazily connect a database if not yet connected, then return its client.
+// Returns null if connection failed.
+async function getOrConnectClient(db, manager) {
+  if (db.isAvailable === false) return null;
+  if (db.client) return db.client;
+  try {
+    db.client = manager.createClient(db.url);
+    await db.client.$connect();
+    db.isAvailable = true;
+    return db.client;
+  } catch (e) {
+    db.isAvailable = false;
+    console.warn(`⚠️ [DB] Lazy-connect to DB #${db.index} failed: ${e.message}`);
+    return null;
+  }
+}
+
 // Create a smart model proxy that:
 //   - For WRITEs: uses only the active (non-full) DB
 //   - For findMany: queries ALL DBs, merges + deduplicates + re-sorts
@@ -241,7 +258,7 @@ function createModelProxy(modelName, manager) {
       if (typeof method !== 'string') return undefined;
 
       return async (...args) => {
-        // ── WRITES: active DB first, fallback on P2025 ─────────────────────
+        // ── WRITES: active DB first, fallback to ALL other DBs on P2025 ────
         if (WRITE_METHODS.has(method)) {
           const activeClient = await manager.getActiveClient();
           try {
@@ -250,9 +267,11 @@ function createModelProxy(modelName, manager) {
             // P2025 = "Record to update/delete not found" — record may live in another DB
             if (err.code === 'P2025' && (method === 'update' || method === 'delete' || method === 'upsert')) {
               for (const db of manager.databases) {
-                if (db.index === manager.activeIndex || !db.client || db.isAvailable === false) continue;
+                if (db.index === manager.activeIndex) continue;
+                const client = await getOrConnectClient(db, manager); // lazy-connect if needed
+                if (!client) continue;
                 try {
-                  return await db.client[modelName][method](...args);
+                  return await client[modelName][method](...args);
                 } catch (innerErr) {
                   if (innerErr.code === 'P2025') continue; // not in this DB either
                   throw innerErr;
@@ -350,12 +369,14 @@ function createModelProxy(modelName, manager) {
             }
           }
 
-          // Not found in active DB — check other DBs (item may be in an old full DB)
+          // Not found in active DB — check ALL other DBs (lazy-connect if needed)
           for (const db of manager.databases) {
-            if (db.index === manager.activeIndex || !db.client || db.isAvailable === false) continue;
+            if (db.index === manager.activeIndex) continue;
+            const client = await getOrConnectClient(db, manager);
+            if (!client) continue;
             try {
               const baseMethod = method.replace('OrThrow', '');
-              const result = await db.client[modelName][baseMethod](...args);
+              const result = await client[modelName][baseMethod](...args);
               if (result !== null && result !== undefined) return result;
             } catch (_) {}
           }
