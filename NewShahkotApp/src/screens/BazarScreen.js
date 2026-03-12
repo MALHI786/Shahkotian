@@ -3,119 +3,125 @@ import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   StyleSheet, Image, RefreshControl, Modal, Alert, ScrollView,
   KeyboardAvoidingView, Platform, ActivityIndicator, Linking,
+  SafeAreaView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { COLORS } from '../config/constants';
+import { COLORS, API_URL } from '../config/constants';
 import { bazarAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { useLanguage } from '../context/LanguageContext';
 import AdBanner from '../components/AdBanner';
-
-const TABS = ['bazars', 'chat', 'search', 'register', 'president'];
 
 export default function BazarScreen() {
   const { user } = useAuth();
-  const { t } = useLanguage();
 
-  // Main state
-  const [activeTab, setActiveTab] = useState('bazars');
+  // ========== NAVIGATION ==========
+  const [currentView, setCurrentView] = useState('home');
+  const [loading, setLoading] = useState(true);
+
+  // ========== DATA ==========
   const [bazars, setBazars] = useState([]);
-  const [selectedBazar, setSelectedBazar] = useState(null);
-  const [traders, setTraders] = useState([]);
   const [myTrader, setMyTrader] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
 
-  // Chat state
+  // ========== REGISTRATION ==========
+  const [regForm, setRegForm] = useState({ fullName: '', shopName: '', phone: '', bazarId: '' });
+  const [regPhoto, setRegPhoto] = useState(null);
+  const [registering, setRegistering] = useState(false);
+
+  // ========== CHAT ==========
+  const [chatBazar, setChatBazar] = useState(null);
   const [messages, setMessages] = useState([]);
   const [chatText, setChatText] = useState('');
-  const [chatBazar, setChatBazar] = useState(null);
   const [chatPage, setChatPage] = useState(1);
   const [chatHasMore, setChatHasMore] = useState(true);
   const [sending, setSending] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
   const chatListRef = useRef(null);
-  const pollRef = useRef(null);
-
-  // Poll creation
+  const pollIntervalRef = useRef(null);
   const [showPollModal, setShowPollModal] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState(['', '']);
 
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
+  // ========== VOTERS ==========
+  const [votersBazar, setVotersBazar] = useState(null);
+  const [voters, setVoters] = useState([]);
+  const [voterSearch, setVoterSearch] = useState('');
+  const [votersLoading, setVotersLoading] = useState(false);
 
-  // Registration form
-  const [regForm, setRegForm] = useState({ fullName: '', shopName: '', phone: '', bazarId: '' });
-  const [regPhoto, setRegPhoto] = useState(null);
-  const [registering, setRegistering] = useState(false);
-
-  // President state
+  // ========== PRESIDENT ==========
   const [presidentToken, setPresidentToken] = useState(null);
   const [presidentData, setPresidentData] = useState(null);
   const [presidentEmail, setPresidentEmail] = useState('');
   const [presidentPassword, setPresidentPassword] = useState('');
   const [pendingTraders, setPendingTraders] = useState([]);
   const [presidentLoading, setPresidentLoading] = useState(false);
+  const [presidentBazars, setPresidentBazars] = useState([]);
+  const [newBazarName, setNewBazarName] = useState('');
+  const [exportBazarId, setExportBazarId] = useState('all');
+  const [presidentStats, setPresidentStats] = useState(null);
 
-  // Trader detail modal
+  // ========== DETAIL MODAL ==========
   const [detailTrader, setDetailTrader] = useState(null);
 
+  // ========== EFFECTS ==========
   useEffect(() => {
-    loadBazars();
-    loadMyStatus();
-    loadPresidentSession();
+    loadInitialData();
   }, []);
 
   useEffect(() => {
-    if (chatBazar) {
+    if (myTrader) {
+      if (myTrader.status === 'APPROVED') setCurrentView('features');
+      else if (myTrader.status === 'PENDING') setCurrentView('pending');
+    }
+  }, [myTrader]);
+
+  useEffect(() => {
+    if (chatBazar && currentView === 'chatRoom') {
       loadChatMessages(1);
-      // Poll for new messages every 5s
-      pollRef.current = setInterval(() => loadChatMessages(1, true), 5000);
-      return () => clearInterval(pollRef.current);
+      pollIntervalRef.current = setInterval(() => loadChatMessages(1, true), 10000);
+      return () => clearInterval(pollIntervalRef.current);
     }
-  }, [chatBazar]);
+    return () => { if (pollIntervalRef.current) clearInterval(pollIntervalRef.current); };
+  }, [chatBazar, currentView]);
 
-  const loadPresidentSession = async () => {
-    const token = await AsyncStorage.getItem('presidentToken');
-    if (token) {
-      setPresidentToken(token);
-      loadPresidentDashboard(token);
-    }
-  };
-
-  const loadBazars = async () => {
+  // ========== LOADERS ==========
+  const loadInitialData = async () => {
     try {
-      setLoading(true);
-      const res = await bazarAPI.getBazars();
-      setBazars(res.data.bazars || []);
+      const [bazarRes, statusRes] = await Promise.all([
+        bazarAPI.getBazars(),
+        bazarAPI.getMyStatus(),
+      ]);
+      setBazars(bazarRes.data.bazars || []);
+      setMyTrader(statusRes.data.trader);
+      const token = await AsyncStorage.getItem('presidentToken');
+      if (token) setPresidentToken(token);
     } catch (e) {
-      console.error('Load bazars error:', e);
+      console.error('Load error:', e);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadMyStatus = async () => {
+  const refreshStatus = async () => {
     try {
-      const res = await bazarAPI.getMyStatus();
-      setMyTrader(res.data.trader);
-    } catch (e) {
-      console.error('My status error:', e);
-    }
+      const [bazarRes, statusRes] = await Promise.all([
+        bazarAPI.getBazars(),
+        bazarAPI.getMyStatus(),
+      ]);
+      setBazars(bazarRes.data.bazars || []);
+      setMyTrader(statusRes.data.trader);
+    } catch (e) {}
   };
 
-  const loadTraders = async (bazarId) => {
+  const loadVoters = async (bazarId) => {
     try {
-      setLoading(true);
+      setVotersLoading(true);
       const res = await bazarAPI.getTraders(bazarId);
-      setTraders(res.data.traders || []);
+      setVoters(res.data.traders || []);
     } catch (e) {
-      console.error('Load traders error:', e);
+      console.error('Load voters error:', e);
     } finally {
-      setLoading(false);
+      setVotersLoading(false);
     }
   };
 
@@ -164,7 +170,7 @@ export default function BazarScreen() {
       setSelectedImages([]);
       loadChatMessages(1);
     } catch (e) {
-      Alert.alert('Error', e.response?.data?.error || 'Failed to send message');
+      Alert.alert('Error', e.response?.data?.error || 'Failed to send');
     } finally {
       setSending(false);
     }
@@ -196,7 +202,7 @@ export default function BazarScreen() {
       setPollOptions(['', '']);
       loadChatMessages(1);
     } catch (e) {
-      Alert.alert('Error', e.response?.data?.error || 'Failed to create poll');
+      Alert.alert('Error', e.response?.data?.error || 'Failed');
     } finally {
       setSending(false);
     }
@@ -218,25 +224,9 @@ export default function BazarScreen() {
         try {
           await bazarAPI.deleteMessage(id);
           setMessages(prev => prev.filter(m => m.id !== id));
-        } catch (e) {
-          Alert.alert('Error', 'Failed to delete');
-        }
+        } catch (e) { Alert.alert('Error', 'Failed to delete'); }
       }},
     ]);
-  };
-
-  // ====== SEARCH ======
-  const searchTraders = async () => {
-    if (!searchQuery.trim()) return;
-    try {
-      setLoading(true);
-      const res = await bazarAPI.searchTraders(searchQuery.trim());
-      setSearchResults(res.data.traders || []);
-    } catch (e) {
-      console.error('Search error:', e);
-    } finally {
-      setLoading(false);
-    }
   };
 
   // ====== REGISTRATION ======
@@ -250,7 +240,7 @@ export default function BazarScreen() {
 
   const submitRegistration = async () => {
     if (!regForm.fullName.trim() || !regForm.shopName.trim() || !regForm.phone.trim() || !regForm.bazarId) {
-      Alert.alert('Required', 'Please fill all fields and select a bazar');
+      Alert.alert('ضروری / Required', 'براہ کرم تمام فیلڈز بھریں اور بازار منتخب کریں\nPlease fill Full Name, Shop Name, Phone and select a Bazar');
       return;
     }
     try {
@@ -264,9 +254,8 @@ export default function BazarScreen() {
         formData.append('photo', { uri: regPhoto, name: 'photo.jpg', type: 'image/jpeg' });
       }
       const res = await bazarAPI.register(formData);
-      Alert.alert('Success', res.data.message || 'Registration submitted!');
+      Alert.alert('کامیاب / Success', res.data.message || 'Registration submitted!');
       setMyTrader(res.data.trader);
-      setActiveTab('bazars');
     } catch (e) {
       Alert.alert('Error', e.response?.data?.error || 'Registration failed');
     } finally {
@@ -284,7 +273,8 @@ export default function BazarScreen() {
       setPresidentToken(token);
       await AsyncStorage.setItem('presidentToken', token);
       setPresidentData(res.data.president);
-      loadPendingTraders(token);
+      setCurrentView('presidentDashboard');
+      loadPresidentData(token);
     } catch (e) {
       Alert.alert('Error', e.response?.data?.error || 'Login failed');
     } finally {
@@ -296,26 +286,28 @@ export default function BazarScreen() {
     setPresidentToken(null);
     setPresidentData(null);
     setPendingTraders([]);
+    setPresidentStats(null);
     await AsyncStorage.removeItem('presidentToken');
+    if (myTrader?.status === 'APPROVED') setCurrentView('features');
+    else setCurrentView('home');
   };
 
-  const loadPresidentDashboard = async (token) => {
+  const loadPresidentData = async (token) => {
     try {
-      const res = await bazarAPI.presidentDashboard(token);
-      setPresidentData(res.data.president);
-      loadPendingTraders(token);
+      setPresidentLoading(true);
+      const [dashRes, pendRes, bazarRes] = await Promise.all([
+        bazarAPI.presidentDashboard(token),
+        bazarAPI.getPending(token),
+        bazarAPI.getBazars(),
+      ]);
+      setPresidentData(dashRes.data.president);
+      setPresidentStats(dashRes.data.stats);
+      setPendingTraders(pendRes.data.traders || []);
+      setPresidentBazars(bazarRes.data.bazars || []);
     } catch (e) {
-      // Token expired
       if (e.response?.status === 403) presidentLogout();
-    }
-  };
-
-  const loadPendingTraders = async (token) => {
-    try {
-      const res = await bazarAPI.getPending(token);
-      setPendingTraders(res.data.traders || []);
-    } catch (e) {
-      console.error('Load pending error:', e);
+    } finally {
+      setPresidentLoading(false);
     }
   };
 
@@ -323,20 +315,16 @@ export default function BazarScreen() {
     try {
       await bazarAPI.approveTrader(id, presidentToken);
       Alert.alert('Done', 'Trader approved');
-      loadPendingTraders(presidentToken);
-    } catch (e) {
-      Alert.alert('Error', 'Failed to approve');
-    }
+      loadPresidentData(presidentToken);
+    } catch (e) { Alert.alert('Error', 'Failed'); }
   };
 
   const rejectTrader = async (id) => {
     try {
       await bazarAPI.rejectTrader(id, presidentToken);
       Alert.alert('Done', 'Trader rejected');
-      loadPendingTraders(presidentToken);
-    } catch (e) {
-      Alert.alert('Error', 'Failed to reject');
-    }
+      loadPresidentData(presidentToken);
+    } catch (e) { Alert.alert('Error', 'Failed'); }
   };
 
   const deleteTrader = async (id) => {
@@ -345,35 +333,319 @@ export default function BazarScreen() {
       { text: 'Delete', style: 'destructive', onPress: async () => {
         try {
           await bazarAPI.deleteTrader(id, presidentToken);
-          loadPendingTraders(presidentToken);
-        } catch (e) {
-          Alert.alert('Error', 'Failed to delete');
-        }
+          loadPresidentData(presidentToken);
+        } catch (e) { Alert.alert('Error', 'Failed'); }
       }},
     ]);
   };
 
-  // ====== RENDER HELPERS ======
-  const renderTraderCard = (item) => (
-    <TouchableOpacity key={item.id} style={styles.traderCard} onPress={() => setDetailTrader(item)} activeOpacity={0.7}>
-      {item.photoUrl ? (
-        <Image source={{ uri: item.photoUrl }} style={styles.traderPhoto} />
-      ) : (
-        <View style={[styles.traderPhoto, styles.traderPhotoPlaceholder]}>
-          <Text style={{ fontSize: 22 }}>🏪</Text>
+  const addBazar = async () => {
+    if (!newBazarName.trim()) return;
+    try {
+      await bazarAPI.addBazar(newBazarName.trim(), presidentToken);
+      setNewBazarName('');
+      loadPresidentData(presidentToken);
+      Alert.alert('Success', 'Bazar added');
+    } catch (e) { Alert.alert('Error', e.response?.data?.error || 'Failed'); }
+  };
+
+  const deleteBazar = async (id) => {
+    Alert.alert('Delete Bazar', 'This will remove the bazar and all its data.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await bazarAPI.deleteBazar(id, presidentToken);
+          loadPresidentData(presidentToken);
+        } catch (e) { Alert.alert('Error', 'Failed'); }
+      }},
+    ]);
+  };
+
+  const exportTraders = () => {
+    const url = bazarAPI.getExportUrl(presidentToken, exportBazarId);
+    Linking.openURL(url);
+  };
+
+  // ========== NAVIGATION ==========
+  const goBack = () => {
+    switch (currentView) {
+      case 'register':
+        if (myTrader?.status === 'APPROVED') setCurrentView('features');
+        else setCurrentView('home');
+        break;
+      case 'pending':
+        setCurrentView('home');
+        break;
+      case 'chat':
+        setCurrentView('features');
+        break;
+      case 'chatRoom':
+        setChatBazar(null);
+        setMessages([]);
+        clearInterval(pollIntervalRef.current);
+        setCurrentView('chat');
+        break;
+      case 'voters':
+        if (votersBazar) {
+          setVotersBazar(null);
+          setVoters([]);
+          setVoterSearch('');
+        } else {
+          setCurrentView('features');
+        }
+        break;
+      case 'presidentLogin':
+        if (myTrader?.status === 'APPROVED') setCurrentView('features');
+        else setCurrentView('home');
+        break;
+      case 'presidentDashboard':
+        if (myTrader?.status === 'APPROVED') setCurrentView('features');
+        else setCurrentView('home');
+        break;
+      default:
+        setCurrentView('home');
+    }
+  };
+
+  const handlePresidentNav = () => {
+    if (presidentToken) {
+      loadPresidentData(presidentToken);
+      setCurrentView('presidentDashboard');
+    } else {
+      setCurrentView('presidentLogin');
+    }
+  };
+
+  // ========== HEADER ==========
+  const renderHeader = () => {
+    const showMainHeader = currentView === 'home' || currentView === 'features';
+
+    if (showMainHeader) {
+      return (
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>شاہکوٹ بازار</Text>
+            <Text style={styles.headerSub}>Shahkot Bazar – Trader Community</Text>
+          </View>
+          {presidentToken && (
+            <TouchableOpacity onPress={() => { loadPresidentData(presidentToken); setCurrentView('presidentDashboard'); }} style={styles.headerPresidentBtn}>
+              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '600' }}>👔 Dashboard</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+
+    const titles = {
+      register: 'اندراج / Register',
+      pending: 'درخواست کی صورتحال',
+      chat: 'بحث کے لیے بازار منتخب کریں',
+      chatRoom: chatBazar?.name || 'Chat',
+      voters: votersBazar ? votersBazar.name : 'تصدیق شدہ ووٹرز',
+      presidentLogin: 'President Login',
+      presidentDashboard: 'President Dashboard',
+    };
+
+    return (
+      <View style={styles.subHeader}>
+        <TouchableOpacity onPress={goBack} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.subHeaderTitle} numberOfLines={1}>{titles[currentView]}</Text>
+        <View style={{ width: 44 }} />
+      </View>
+    );
+  };
+
+  // ========== HOME VIEW ==========
+  const renderHome = () => (
+    <ScrollView style={styles.viewContainer} contentContainerStyle={{ alignItems: 'center', paddingBottom: 40, paddingHorizontal: 20 }}>
+      <AdBanner />
+      <View style={styles.guideCard}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>🏪</Text>
+        <Text style={styles.guideUrdu}>
+          اگر آپ کسی بازار میں دکاندار ہیں تو براہ کرم اپنا اندراج کروائیں۔{'\n'}
+          بصورت دیگر آپ کو اندراج کی ضرورت نہیں۔
+        </Text>
+        <View style={styles.guideDivider} />
+        <Text style={styles.guideEn}>
+          If you are a trader in any bazar, please register yourself.{'\n'}
+          Otherwise, you do not need to register.
+        </Text>
+      </View>
+
+      {myTrader?.status === 'REJECTED' && (
+        <View style={styles.alertCard}>
+          <Text style={styles.alertText}>⚠️ آپ کی پچھلی درخواست مسترد ہوگئی۔ آپ دوبارہ اندراج کر سکتے ہیں۔</Text>
+          <Text style={[styles.alertText, { fontSize: 12, marginTop: 4 }]}>Your previous registration was rejected.</Text>
         </View>
       )}
-      <View style={{ flex: 1 }}>
-        <Text style={styles.traderName}>{item.fullName}</Text>
-        <Text style={styles.traderShop}>{item.shopName}</Text>
-        <Text style={styles.traderBazar}>{item.bazar?.name}</Text>
-      </View>
-      <View style={[styles.statusBadge, item.status === 'APPROVED' && styles.statusApproved, item.status === 'PENDING' && styles.statusPending, item.status === 'REJECTED' && styles.statusRejected]}>
-        <Text style={styles.statusText}>{item.status}</Text>
-      </View>
-    </TouchableOpacity>
+
+      <TouchableOpacity style={styles.bigBtn} onPress={() => setCurrentView('register')}>
+        <Text style={{ fontSize: 28, marginRight: 14 }}>📝</Text>
+        <View>
+          <Text style={styles.bigBtnText}>Register / اندراج کریں</Text>
+          <Text style={styles.bigBtnSub}>Join your bazar community</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.presidentLink} onPress={handlePresidentNav}>
+        <Text style={styles.presidentLinkText}>👔 President Login</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 
+  // ========== REGISTER VIEW ==========
+  const renderRegister = () => {
+    if (myTrader && myTrader.status !== 'REJECTED') {
+      return (
+        <ScrollView style={styles.viewContainer} contentContainerStyle={{ alignItems: 'center', paddingTop: 40, padding: 20 }}>
+          <View style={styles.statusCard}>
+            <Text style={{ fontSize: 40, marginBottom: 10 }}>✅</Text>
+            <Text style={styles.statusTitle}>Already Registered</Text>
+            <Text style={styles.statusMsg}>آپ پہلے سے ایک تاجر کے طور پر رجسٹرڈ ہیں۔</Text>
+          </View>
+        </ScrollView>
+      );
+    }
+
+    return (
+      <ScrollView style={styles.viewContainer} keyboardShouldPersistTaps="handled">
+        <AdBanner />
+        <View style={{ padding: 16 }}>
+          <Text style={styles.formTitle}>تاجر رجسٹریشن فارم</Text>
+          <Text style={styles.formSubtitle}>Trader Registration Form</Text>
+
+          <Text style={styles.inputLabel}>پورا نام / Full Name *</Text>
+          <TextInput style={styles.input} value={regForm.fullName} onChangeText={v => setRegForm({...regForm, fullName: v})} placeholder="اپنا پورا نام درج کریں" placeholderTextColor={COLORS.textLight} />
+
+          <Text style={styles.inputLabel}>دکان کا نام / Shop Name *</Text>
+          <TextInput style={styles.input} value={regForm.shopName} onChangeText={v => setRegForm({...regForm, shopName: v})} placeholder="اپنی دکان کا نام درج کریں" placeholderTextColor={COLORS.textLight} />
+
+          <Text style={styles.inputLabel}>فون نمبر / Phone Number *</Text>
+          <TextInput style={styles.input} value={regForm.phone} onChangeText={v => setRegForm({...regForm, phone: v})} placeholder="03xx-xxxxxxx" keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
+
+          <Text style={styles.inputLabel}>بازار منتخب کریں / Select Bazar *</Text>
+          <View style={styles.bazarGrid}>
+            {bazars.map(b => (
+              <TouchableOpacity key={b.id} style={[styles.bazarChip, regForm.bazarId === b.id && styles.bazarChipSelected]} onPress={() => setRegForm({...regForm, bazarId: b.id})}>
+                <Text style={[styles.bazarChipText, regForm.bazarId === b.id && { color: '#fff' }]}>{b.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.inputLabel}>تصویر / Profile Picture (اختیاری / Optional)</Text>
+          <TouchableOpacity style={styles.photoPicker} onPress={pickRegPhoto}>
+            {regPhoto ? (
+              <Image source={{ uri: regPhoto }} style={styles.photoPreview} />
+            ) : (
+              <View style={styles.photoPlaceholder}>
+                <Text style={{ fontSize: 28 }}>📷</Text>
+                <Text style={styles.photoPlaceholderText}>Tap to add photo (optional)</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.submitBtn, registering && { opacity: 0.5 }]} onPress={submitRegistration} disabled={registering}>
+            <Text style={styles.submitBtnText}>{registering ? 'جمع ہو رہا ہے...' : 'جمع کرائیں / Submit'}</Text>
+          </TouchableOpacity>
+          <View style={{ height: 40 }} />
+        </View>
+      </ScrollView>
+    );
+  };
+
+  // ========== PENDING VIEW ==========
+  const renderPending = () => (
+    <ScrollView style={styles.viewContainer} contentContainerStyle={{ alignItems: 'center', paddingTop: 30, paddingHorizontal: 20 }}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={refreshStatus} colors={[COLORS.primary]} />}>
+      <View style={styles.statusCard}>
+        <Text style={{ fontSize: 52, marginBottom: 16 }}>⏳</Text>
+        <Text style={styles.statusTitle}>منظوری کا انتظار</Text>
+        <Text style={[styles.statusTitle, { fontSize: 16, marginTop: 4 }]}>Waiting for Approval</Text>
+        <View style={styles.guideDivider} />
+        <Text style={styles.statusMsg}>
+          آپ کی درخواست جمع کر دی گئی ہے۔{'\n'}
+          براہ کرم صدر کی منظوری کا انتظار کریں۔
+        </Text>
+        <Text style={[styles.statusMsg, { marginTop: 10, color: COLORS.textSecondary }]}>
+          Your registration request has been submitted.{'\n'}
+          Please wait for President approval.
+        </Text>
+        {myTrader && (
+          <View style={styles.pendingDetails}>
+            <Text style={styles.pendingDetailText}>📛 {myTrader.fullName}</Text>
+            <Text style={styles.pendingDetailText}>🏪 {myTrader.shopName}</Text>
+            <Text style={styles.pendingDetailText}>📍 {myTrader.bazar?.name}</Text>
+            <Text style={styles.pendingDetailText}>📞 {myTrader.phone}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={{ fontSize: 12, color: COLORS.textLight, marginTop: 24 }}>↓ نیچے کھینچیں ریفریش کرنے کے لیے / Pull down to refresh</Text>
+    </ScrollView>
+  );
+
+  // ========== FEATURES VIEW (After Approval) ==========
+  const renderFeatures = () => (
+    <ScrollView style={styles.viewContainer} contentContainerStyle={{ padding: 20 }}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={refreshStatus} colors={[COLORS.primary]} />}>
+      <AdBanner />
+
+      <View style={styles.approvedBanner}>
+        <Text style={styles.approvedBannerText}>✅ تصدیق شدہ تاجر / Verified Trader</Text>
+        <Text style={styles.approvedBannerSub}>{myTrader?.shopName} – {myTrader?.bazar?.name}</Text>
+      </View>
+
+      <TouchableOpacity style={styles.featureCard} onPress={() => setCurrentView('chat')} activeOpacity={0.7}>
+        <View style={[styles.featureIcon, { backgroundColor: '#E3F2FD' }]}>
+          <Text style={{ fontSize: 32 }}>💬</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.featureTitle}>Discuss Issues / مسائل پر بات</Text>
+          <Text style={styles.featureSub}>Open chat room for bazar discussions</Text>
+        </View>
+        <Text style={{ fontSize: 22, color: COLORS.textLight }}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.featureCard} onPress={() => setCurrentView('voters')} activeOpacity={0.7}>
+        <View style={[styles.featureIcon, { backgroundColor: '#E8F5E9' }]}>
+          <Text style={{ fontSize: 32 }}>✅</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.featureTitle}>Verified Voters / تصدیق شدہ ووٹرز</Text>
+          <Text style={styles.featureSub}>View registered traders by bazar</Text>
+        </View>
+        <Text style={{ fontSize: 22, color: COLORS.textLight }}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.presidentLink} onPress={handlePresidentNav}>
+        <Text style={styles.presidentLinkText}>👔 President Login</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+
+  // ========== CHAT SELECT VIEW ==========
+  const renderChatSelect = () => (
+    <ScrollView style={styles.viewContainer}>
+      <AdBanner />
+      <View style={{ padding: 16 }}>
+        <Text style={styles.sectionTitle}>بحث کے لیے بازار منتخب کریں</Text>
+        <Text style={styles.sectionSub}>Select a bazar to join the discussion</Text>
+        {bazars.map(bazar => (
+          <TouchableOpacity key={bazar.id} style={styles.bazarSelectCard} onPress={() => { setChatBazar(bazar); setCurrentView('chatRoom'); }} activeOpacity={0.7}>
+            <View style={styles.bazarSelectIcon}><Text style={{ fontSize: 28 }}>💬</Text></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.bazarSelectName}>{bazar.name}</Text>
+              <Text style={styles.bazarSelectCount}>{bazar._count?.traders || 0} traders</Text>
+            </View>
+            <Text style={{ fontSize: 18, color: COLORS.textLight }}>›</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
+  );
+
+  // ========== CHAT ROOM VIEW ==========
   const renderChatMessage = ({ item }) => {
     const isOwn = item.trader?.userId === user?.id || item.traderId === myTrader?.id;
     const isPoll = !!item.pollQuestion;
@@ -384,19 +656,14 @@ export default function BazarScreen() {
       const totalVotes = votes.length;
       return (
         <View style={[styles.chatBubble, styles.pollBubble]}>
-          <Text style={styles.pollSender}>{item.trader?.fullName} - {item.trader?.shopName}</Text>
+          <Text style={styles.pollSender}>{item.trader?.fullName} – {item.trader?.shopName}</Text>
           <Text style={styles.pollQuestion}>{item.pollQuestion}</Text>
           {(item.pollOptions || []).map((opt, idx) => {
             const optVotes = votes.filter(v => v.endsWith(':' + idx)).length;
             const pct = totalVotes > 0 ? Math.round((optVotes / totalVotes) * 100) : 0;
             const voted = myVote?.endsWith(':' + idx);
             return (
-              <TouchableOpacity
-                key={idx}
-                style={[styles.pollOption, voted && styles.pollOptionVoted]}
-                onPress={() => !myVote && votePoll(item.id, idx)}
-                disabled={!!myVote}
-              >
+              <TouchableOpacity key={idx} style={[styles.pollOption, voted && styles.pollOptionVoted]} onPress={() => !myVote && votePoll(item.id, idx)} disabled={!!myVote}>
                 <Text style={[styles.pollOptionText, voted && { fontWeight: '700' }]}>{opt}</Text>
                 {myVote && <Text style={styles.pollPct}>{pct}% ({optVotes})</Text>}
               </TouchableOpacity>
@@ -408,20 +675,14 @@ export default function BazarScreen() {
     }
 
     return (
-      <TouchableOpacity
-        style={[styles.chatBubble, isOwn ? styles.chatBubbleOwn : styles.chatBubbleOther]}
-        onLongPress={() => isOwn && deleteChatMsg(item.id)}
-        activeOpacity={0.8}
-      >
-        {!isOwn && <Text style={styles.chatSender}>{item.trader?.fullName}</Text>}
+      <TouchableOpacity style={[styles.chatBubble, isOwn ? styles.chatBubbleOwn : styles.chatBubbleOther]} onLongPress={() => isOwn && deleteChatMsg(item.id)} activeOpacity={0.8}>
+        {!isOwn && <Text style={styles.chatSenderName}>{item.trader?.fullName}</Text>}
         {item.images?.length > 0 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
-            {item.images.map((img, i) => (
-              <Image key={i} source={{ uri: img }} style={styles.chatImage} />
-            ))}
+            {item.images.map((img, i) => <Image key={i} source={{ uri: img }} style={styles.chatImage} />)}
           </ScrollView>
         )}
-        {item.text && <Text style={[styles.chatText, isOwn && { color: '#fff' }]}>{item.text}</Text>}
+        {item.text && <Text style={[styles.chatMsgText, isOwn && { color: '#fff' }]}>{item.text}</Text>}
         <Text style={[styles.chatTime, isOwn && { color: 'rgba(255,255,255,0.6)' }]}>
           {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
         </Text>
@@ -429,306 +690,233 @@ export default function BazarScreen() {
     );
   };
 
-  // ====== TAB CONTENT ======
-  const renderBazarsTab = () => (
-    <ScrollView style={{ flex: 1 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadBazars().then(() => setRefreshing(false)); }} colors={[COLORS.primary]} />}>
-      <AdBanner />
-      {/* My Status */}
-      {myTrader && (
-        <View style={styles.myStatusCard}>
-          <Text style={styles.myStatusTitle}>Your Trader Profile</Text>
-          <View style={styles.myStatusRow}>
-            <Text style={styles.myStatusLabel}>Status:</Text>
-            <View style={[styles.statusBadge, myTrader.status === 'APPROVED' && styles.statusApproved, myTrader.status === 'PENDING' && styles.statusPending, myTrader.status === 'REJECTED' && styles.statusRejected]}>
-              <Text style={styles.statusText}>{myTrader.status}</Text>
+  const renderChatRoom = () => (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 80}
+    >
+      <FlatList
+        ref={chatListRef}
+        data={messages}
+        renderItem={renderChatMessage}
+        keyExtractor={item => item.id}
+        contentContainerStyle={{ padding: 10, paddingBottom: 8, flexGrow: 1 }}
+        onContentSizeChange={() => chatListRef.current?.scrollToEnd({ animated: false })}
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Text style={{ fontSize: 48 }}>💬</Text>
+            <Text style={styles.emptyText}>ابھی تک کوئی پیغام نہیں</Text>
+            <Text style={[styles.emptyText, { fontSize: 13 }]}>No messages yet. Start the discussion!</Text>
+          </View>
+        }
+      />
+
+      {selectedImages.length > 0 && (
+        <ScrollView horizontal style={styles.imagePreviewRow}>
+          {selectedImages.map((uri, i) => (
+            <View key={i} style={styles.previewItem}>
+              <Image source={{ uri }} style={styles.previewThumb} />
+              <TouchableOpacity style={styles.previewRemove} onPress={() => setSelectedImages(prev => prev.filter((_, idx) => idx !== i))}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </ScrollView>
+      )}
+
+      <SafeAreaView style={styles.chatInputSafe}>
+        <View style={styles.chatInputContainer}>
+          <TouchableOpacity onPress={pickChatImages} style={styles.chatActionBtn}>
+            <Text style={{ fontSize: 20 }}>📷</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowPollModal(true)} style={styles.chatActionBtn}>
+            <Text style={{ fontSize: 20 }}>📊</Text>
+          </TouchableOpacity>
+          <TextInput
+            style={styles.chatInput}
+            value={chatText}
+            onChangeText={setChatText}
+            placeholder="پیغام لکھیں..."
+            placeholderTextColor={COLORS.textLight}
+            multiline
+            maxLength={2000}
+          />
+          <TouchableOpacity onPress={sendChatMessage} disabled={sending} style={[styles.chatSendBtn, sending && { opacity: 0.5 }]}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>{sending ? '...' : '➤'}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+
+      <Modal visible={showPollModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Create Poll / رائے شماری</Text>
+            <TextInput style={styles.input} placeholder="سوال..." value={pollQuestion} onChangeText={setPollQuestion} placeholderTextColor={COLORS.textLight} />
+            {pollOptions.map((opt, i) => (
+              <TextInput key={i} style={[styles.input, { marginTop: 8 }]} placeholder={`آپشن ${i + 1}`} value={opt} onChangeText={text => { const c = [...pollOptions]; c[i] = text; setPollOptions(c); }} placeholderTextColor={COLORS.textLight} />
+            ))}
+            <TouchableOpacity onPress={() => setPollOptions(prev => [...prev, ''])} style={{ padding: 10, alignItems: 'center' }}>
+              <Text style={{ color: COLORS.primary, fontWeight: '600' }}>+ Add Option</Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity style={[styles.submitBtn, { flex: 1, backgroundColor: COLORS.background }]} onPress={() => setShowPollModal(false)}>
+                <Text style={[styles.submitBtnText, { color: COLORS.textSecondary }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.submitBtn, { flex: 2 }]} onPress={createPoll} disabled={sending}>
+                <Text style={styles.submitBtnText}>{sending ? 'Creating...' : 'Create Poll'}</Text>
+              </TouchableOpacity>
             </View>
           </View>
-          <Text style={styles.myStatusInfo}>{myTrader.shopName} - {myTrader.bazar?.name}</Text>
-          {myTrader.status === 'PENDING' && <Text style={styles.pendingNote}>Your registration is awaiting approval from admin/president.</Text>}
-          {myTrader.status === 'APPROVED' && <Text style={styles.approvedNote}>You can now participate in bazar chat!</Text>}
         </View>
-      )}
-
-      {/* Bazar List */}
-      <Text style={styles.sectionTitle}>Shahkot Bazars</Text>
-      {loading && bazars.length === 0 && <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 30 }} />}
-      {bazars.map(bazar => (
-        <TouchableOpacity key={bazar.id} style={styles.bazarCard} onPress={() => { setSelectedBazar(bazar); loadTraders(bazar.id); }}>
-          <View style={styles.bazarIcon}><Text style={{ fontSize: 28 }}>🏪</Text></View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.bazarName}>{bazar.name}</Text>
-            <Text style={styles.bazarCount}>{bazar._count?.traders || 0} verified traders</Text>
-          </View>
-          <Text style={{ fontSize: 18, color: COLORS.textLight }}>›</Text>
-        </TouchableOpacity>
-      ))}
-
-      {/* Registration CTA */}
-      {!myTrader && user && (
-        <TouchableOpacity style={styles.registerCta} onPress={() => setActiveTab('register')}>
-          <Text style={styles.registerCtaIcon}>📝</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.registerCtaTitle}>Register as Trader</Text>
-            <Text style={styles.registerCtaSub}>Join your bazar community and connect with other traders</Text>
-          </View>
-        </TouchableOpacity>
-      )}
-      <View style={{ height: 20 }} />
-    </ScrollView>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 
-  const renderChatTab = () => {
-    if (!chatBazar) {
+  // ========== VOTERS VIEW ==========
+  const filteredVoters = voters.filter(v => {
+    if (!voterSearch.trim()) return true;
+    const q = voterSearch.toLowerCase();
+    return v.fullName.toLowerCase().includes(q) || v.shopName.toLowerCase().includes(q) || v.phone.includes(q);
+  });
+
+  const renderVoters = () => {
+    if (!votersBazar) {
       return (
-        <ScrollView style={{ flex: 1, padding: 16 }}>
+        <ScrollView style={styles.viewContainer}>
           <AdBanner />
-          <Text style={styles.sectionTitle}>Select Bazar for Chat</Text>
-          {bazars.map(bazar => (
-            <TouchableOpacity key={bazar.id} style={styles.bazarCard} onPress={() => setChatBazar(bazar)}>
-              <View style={styles.bazarIcon}><Text style={{ fontSize: 28 }}>💬</Text></View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.bazarName}>{bazar.name}</Text>
-                <Text style={styles.bazarCount}>Open group chat</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          <View style={{ padding: 16 }}>
+            <Text style={styles.sectionTitle}>بازار منتخب کریں</Text>
+            <Text style={styles.sectionSub}>Select a bazar to view verified traders</Text>
+            {bazars.map(bazar => (
+              <TouchableOpacity key={bazar.id} style={styles.bazarSelectCard} onPress={() => { setVotersBazar(bazar); loadVoters(bazar.id); }} activeOpacity={0.7}>
+                <View style={styles.bazarSelectIcon}><Text style={{ fontSize: 28 }}>✅</Text></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.bazarSelectName}>{bazar.name}</Text>
+                  <Text style={styles.bazarSelectCount}>{bazar._count?.traders || 0} verified traders</Text>
+                </View>
+                <Text style={{ fontSize: 18, color: COLORS.textLight }}>›</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </ScrollView>
       );
     }
 
-    const canChat = myTrader?.status === 'APPROVED';
-
     return (
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
-        {/* Chat Header */}
-        <View style={styles.chatHeader}>
-          <TouchableOpacity onPress={() => { setChatBazar(null); setMessages([]); clearInterval(pollRef.current); }}>
-            <Text style={styles.chatBack}>‹ Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.chatHeaderTitle}>{chatBazar.name}</Text>
+      <View style={{ flex: 1 }}>
+        <View style={styles.searchBarContainer}>
+          <Text style={{ fontSize: 16 }}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="نام، دکان یا فون سے تلاش کریں..."
+            value={voterSearch}
+            onChangeText={setVoterSearch}
+            placeholderTextColor={COLORS.textLight}
+          />
+          {voterSearch.length > 0 && (
+            <TouchableOpacity onPress={() => setVoterSearch('')} style={{ padding: 8 }}>
+              <Text style={{ color: COLORS.textLight, fontSize: 16 }}>✕</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Messages */}
         <FlatList
-          ref={chatListRef}
-          data={messages}
-          renderItem={renderChatMessage}
+          data={filteredVoters}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ padding: 10, paddingBottom: 4 }}
-          onEndReached={() => { if (chatHasMore) loadChatMessages(chatPage + 1); }}
-          onEndReachedThreshold={0.3}
-          ListEmptyComponent={<View style={styles.empty}><Text style={styles.emptyIcon}>💬</Text><Text style={styles.emptyText}>No messages yet</Text></View>}
-        />
-
-        {/* Image preview */}
-        {selectedImages.length > 0 && (
-          <ScrollView horizontal style={styles.imagePreviewRow}>
-            {selectedImages.map((uri, i) => (
-              <View key={i} style={styles.previewItem}>
-                <Image source={{ uri }} style={styles.previewImage} />
-                <TouchableOpacity style={styles.previewRemove} onPress={() => setSelectedImages(prev => prev.filter((_, idx) => idx !== i))}>
-                  <Text style={{ color: '#fff', fontWeight: '700' }}>✕</Text>
-                </TouchableOpacity>
+          renderItem={({ item }) => (
+            <TouchableOpacity style={styles.voterCard} onPress={() => setDetailTrader(item)} activeOpacity={0.7}>
+              {item.photoUrl ? (
+                <Image source={{ uri: item.photoUrl }} style={styles.voterPhoto} />
+              ) : (
+                <View style={[styles.voterPhoto, styles.voterPhotoPlaceholder]}>
+                  <Text style={{ fontSize: 20 }}>🏪</Text>
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.voterName}>{item.fullName}</Text>
+                <Text style={styles.voterShop}>{item.shopName}</Text>
+                <Text style={styles.voterPhone}>📞 {item.phone}</Text>
               </View>
-            ))}
-          </ScrollView>
-        )}
-
-        {/* Input */}
-        {canChat ? (
-          <View style={styles.chatInputRow}>
-            <TouchableOpacity onPress={pickChatImages} style={styles.chatIconBtn}>
-              <Text style={{ fontSize: 20 }}>📷</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowPollModal(true)} style={styles.chatIconBtn}>
-              <Text style={{ fontSize: 20 }}>📊</Text>
-            </TouchableOpacity>
-            <TextInput
-              style={styles.chatInput}
-              value={chatText}
-              onChangeText={setChatText}
-              placeholder="Type a message..."
-              placeholderTextColor={COLORS.textLight}
-              multiline
-            />
-            <TouchableOpacity onPress={sendChatMessage} disabled={sending} style={[styles.chatSendBtn, sending && { opacity: 0.5 }]}>
-              <Text style={{ color: '#fff', fontWeight: '700' }}>{sending ? '...' : '➤'}</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={styles.chatDisabled}>
-            <Text style={styles.chatDisabledText}>
-              {myTrader ? 'Your registration is pending approval' : 'Register as a trader to join the chat'}
+          )}
+          contentContainerStyle={{ padding: 12, paddingBottom: 20 }}
+          refreshControl={<RefreshControl refreshing={votersLoading} onRefresh={() => loadVoters(votersBazar.id)} colors={[COLORS.primary]} />}
+          ListHeaderComponent={
+            <Text style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 10 }}>
+              {filteredVoters.length} trader{filteredVoters.length !== 1 ? 's' : ''} found
             </Text>
-          </View>
-        )}
-
-        {/* Poll Modal */}
-        <Modal visible={showPollModal} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Create Poll</Text>
-              <TextInput
-                style={styles.formInput}
-                placeholder="Poll question..."
-                value={pollQuestion}
-                onChangeText={setPollQuestion}
-                placeholderTextColor={COLORS.textLight}
-              />
-              {pollOptions.map((opt, i) => (
-                <TextInput
-                  key={i}
-                  style={[styles.formInput, { marginTop: 8 }]}
-                  placeholder={`Option ${i + 1}`}
-                  value={opt}
-                  onChangeText={text => { const copy = [...pollOptions]; copy[i] = text; setPollOptions(copy); }}
-                  placeholderTextColor={COLORS.textLight}
-                />
-              ))}
-              <TouchableOpacity onPress={() => setPollOptions(prev => [...prev, ''])} style={styles.addOptionBtn}>
-                <Text style={styles.addOptionText}>+ Add Option</Text>
-              </TouchableOpacity>
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowPollModal(false)}>
-                  <Text style={styles.cancelBtnText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.saveBtn} onPress={createPoll} disabled={sending}>
-                  <Text style={styles.saveBtnText}>{sending ? 'Creating...' : 'Create Poll'}</Text>
-                </TouchableOpacity>
-              </View>
+          }
+          ListEmptyComponent={!votersLoading && (
+            <View style={styles.emptyState}>
+              <Text style={{ fontSize: 48 }}>🏪</Text>
+              <Text style={styles.emptyText}>No traders found</Text>
             </View>
-          </View>
-        </Modal>
-      </KeyboardAvoidingView>
+          )}
+        />
+      </View>
     );
   };
 
-  const renderSearchTab = () => (
-    <ScrollView style={{ flex: 1 }}>
-      <AdBanner />
-      <View style={{ padding: 16 }}>
-        <View style={styles.searchBar}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search traders by name or shop..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={searchTraders}
-            returnKeyType="search"
-            placeholderTextColor={COLORS.textLight}
-          />
-          <TouchableOpacity style={styles.searchButton} onPress={searchTraders}>
-            <Text style={styles.searchBtnText}>Search</Text>
-          </TouchableOpacity>
-        </View>
-        {loading && <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: 20 }} />}
-        {searchResults.map(item => renderTraderCard(item))}
-        {searchQuery && !loading && searchResults.length === 0 && (
-          <View style={styles.empty}><Text style={styles.emptyIcon}>🔍</Text><Text style={styles.emptyText}>No traders found</Text></View>
-        )}
+  // ========== PRESIDENT LOGIN ==========
+  const renderPresidentLogin = () => (
+    <ScrollView style={styles.viewContainer} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, alignItems: 'center' }}>
+      <View style={[styles.statusCard, { marginTop: 20 }]}>
+        <Text style={{ fontSize: 48, marginBottom: 12 }}>👔</Text>
+        <Text style={styles.statusTitle}>President Login</Text>
+        <Text style={styles.sectionSub}>Manage trader registrations and bazars</Text>
+      </View>
+      <View style={{ width: '100%', marginTop: 20 }}>
+        <TextInput style={styles.input} placeholder="Email" value={presidentEmail} onChangeText={setPresidentEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor={COLORS.textLight} />
+        <TextInput style={[styles.input, { marginTop: 10 }]} placeholder="Password" value={presidentPassword} onChangeText={setPresidentPassword} secureTextEntry placeholderTextColor={COLORS.textLight} />
+        <TouchableOpacity style={[styles.submitBtn, presidentLoading && { opacity: 0.5 }]} onPress={presidentLogin} disabled={presidentLoading}>
+          <Text style={styles.submitBtnText}>{presidentLoading ? 'Logging in...' : 'Login'}</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
 
-  const renderRegisterTab = () => {
-    if (myTrader) {
-      return (
-        <ScrollView style={{ flex: 1, padding: 16 }}>
-          <AdBanner />
-          <View style={styles.myStatusCard}>
-            <Text style={styles.myStatusTitle}>Your Registration</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
-              {myTrader.photoUrl ? <Image source={{ uri: myTrader.photoUrl }} style={styles.regAvatar} /> : <View style={[styles.regAvatar, styles.traderPhotoPlaceholder]}><Text style={{ fontSize: 28 }}>🏪</Text></View>}
-              <View style={{ flex: 1 }}>
-                <Text style={styles.traderName}>{myTrader.fullName}</Text>
-                <Text style={styles.traderShop}>{myTrader.shopName}</Text>
-                <Text style={styles.traderBazar}>{myTrader.bazar?.name}</Text>
-              </View>
-            </View>
-            <View style={[styles.statusBadge, myTrader.status === 'APPROVED' && styles.statusApproved, myTrader.status === 'PENDING' && styles.statusPending, myTrader.status === 'REJECTED' && styles.statusRejected, { alignSelf: 'flex-start', marginTop: 10 }]}>
-              <Text style={styles.statusText}>{myTrader.status}</Text>
-            </View>
-          </View>
-        </ScrollView>
-      );
-    }
-
-    return (
-      <ScrollView style={{ flex: 1, padding: 16 }} keyboardShouldPersistTaps="handled">
-        <AdBanner />
-        <Text style={styles.sectionTitle}>Register as Trader</Text>
-        <Text style={styles.sectionSub}>Fill in your details to join your bazar community</Text>
-
-        <Text style={styles.inputLabel}>Full Name *</Text>
-        <TextInput style={styles.formInput} value={regForm.fullName} onChangeText={v => setRegForm({ ...regForm, fullName: v })} placeholder="Your full name" placeholderTextColor={COLORS.textLight} />
-
-        <Text style={styles.inputLabel}>Shop Name *</Text>
-        <TextInput style={styles.formInput} value={regForm.shopName} onChangeText={v => setRegForm({ ...regForm, shopName: v })} placeholder="Your shop name" placeholderTextColor={COLORS.textLight} />
-
-        <Text style={styles.inputLabel}>Phone *</Text>
-        <TextInput style={styles.formInput} value={regForm.phone} onChangeText={v => setRegForm({ ...regForm, phone: v })} placeholder="03xx-xxxxxxx" keyboardType="phone-pad" placeholderTextColor={COLORS.textLight} />
-
-        <Text style={styles.inputLabel}>Select Bazar *</Text>
-        <View style={styles.bazarPicker}>
-          {bazars.map(b => (
-            <TouchableOpacity key={b.id} style={[styles.bazarPickerItem, regForm.bazarId === b.id && styles.bazarPickerSelected]} onPress={() => setRegForm({ ...regForm, bazarId: b.id })}>
-              <Text style={[styles.bazarPickerText, regForm.bazarId === b.id && { color: COLORS.white }]}>{b.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.inputLabel}>Photo (Optional)</Text>
-        <TouchableOpacity style={styles.photoPicker} onPress={pickRegPhoto}>
-          {regPhoto ? <Image source={{ uri: regPhoto }} style={styles.photoPreview} /> : <Text style={styles.photoPickerText}>📷 Tap to add photo</Text>}
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.submitBtn, registering && { opacity: 0.5 }]} onPress={submitRegistration} disabled={registering}>
-          <Text style={styles.submitBtnText}>{registering ? 'Submitting...' : 'Submit Registration'}</Text>
-        </TouchableOpacity>
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    );
-  };
-
-  const renderPresidentTab = () => {
-    if (!presidentToken) {
-      return (
-        <ScrollView style={{ flex: 1, padding: 16 }} keyboardShouldPersistTaps="handled">
-          <AdBanner />
-          <Text style={styles.sectionTitle}>President Login</Text>
-          <Text style={styles.sectionSub}>Login to manage trader registrations</Text>
-          <TextInput style={[styles.formInput, { marginTop: 16 }]} placeholder="Email" value={presidentEmail} onChangeText={setPresidentEmail} keyboardType="email-address" autoCapitalize="none" placeholderTextColor={COLORS.textLight} />
-          <TextInput style={[styles.formInput, { marginTop: 10 }]} placeholder="Password" value={presidentPassword} onChangeText={setPresidentPassword} secureTextEntry placeholderTextColor={COLORS.textLight} />
-          <TouchableOpacity style={[styles.submitBtn, presidentLoading && { opacity: 0.5 }]} onPress={presidentLogin} disabled={presidentLoading}>
-            <Text style={styles.submitBtnText}>{presidentLoading ? 'Logging in...' : 'Login'}</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      );
-    }
-
-    return (
-      <ScrollView style={{ flex: 1, padding: 16 }} refreshControl={<RefreshControl refreshing={presidentLoading} onRefresh={() => loadPresidentDashboard(presidentToken)} colors={[COLORS.primary]} />}>
+  // ========== PRESIDENT DASHBOARD ==========
+  const renderPresidentDashboard = () => (
+    <ScrollView style={styles.viewContainer} refreshControl={<RefreshControl refreshing={presidentLoading} onRefresh={() => loadPresidentData(presidentToken)} colors={[COLORS.primary]} />}>
+      <View style={{ padding: 16 }}>
+        {/* President Info */}
         <View style={styles.presidentHeader}>
           <View>
             <Text style={styles.presidentName}>{presidentData?.name || 'President'}</Text>
-            <Text style={styles.presidentEmail}>{presidentData?.email}</Text>
+            <Text style={styles.presidentEmailText}>{presidentData?.email}</Text>
           </View>
           <TouchableOpacity onPress={presidentLogout} style={styles.logoutBtn}>
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.sectionTitle}>Pending Approvals ({pendingTraders.length})</Text>
-        {pendingTraders.length === 0 && <Text style={styles.pendingNote}>No pending registrations</Text>}
+        {/* Stats */}
+        {presidentStats && (
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}><Text style={styles.statNum}>{presidentStats.totalTraders}</Text><Text style={styles.statLabel}>Total</Text></View>
+            <View style={styles.statCard}><Text style={[styles.statNum, { color: COLORS.warning }]}>{presidentStats.pendingTraders}</Text><Text style={styles.statLabel}>Pending</Text></View>
+            <View style={styles.statCard}><Text style={[styles.statNum, { color: COLORS.success }]}>{presidentStats.approvedTraders}</Text><Text style={styles.statLabel}>Approved</Text></View>
+            <View style={styles.statCard}><Text style={styles.statNum}>{presidentStats.totalBazars}</Text><Text style={styles.statLabel}>Bazars</Text></View>
+          </View>
+        )}
+
+        {/* Pending Approvals */}
+        <Text style={styles.dashSectionTitle}>📋 Pending Approvals ({pendingTraders.length})</Text>
+        {pendingTraders.length === 0 && <Text style={styles.emptyMsg}>No pending registrations</Text>}
         {pendingTraders.map(trader => (
           <View key={trader.id} style={styles.pendingCard}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-              {trader.photoUrl ? <Image source={{ uri: trader.photoUrl }} style={styles.pendingPhoto} /> : <View style={[styles.pendingPhoto, styles.traderPhotoPlaceholder]}><Text>🏪</Text></View>}
+              {trader.photoUrl ? (
+                <Image source={{ uri: trader.photoUrl }} style={styles.pendingPhoto} />
+              ) : (
+                <View style={[styles.pendingPhoto, styles.voterPhotoPlaceholder]}><Text>🏪</Text></View>
+              )}
               <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={styles.traderName}>{trader.fullName}</Text>
-                <Text style={styles.traderShop}>{trader.shopName}</Text>
-                <Text style={styles.traderBazar}>{trader.bazar?.name}</Text>
-                <Text style={{ fontSize: 12, color: COLORS.textLight }}>📞 {trader.phone}</Text>
+                <Text style={{ fontWeight: '700', color: COLORS.text, fontSize: 15 }}>{trader.fullName}</Text>
+                <Text style={{ fontSize: 13, color: COLORS.textSecondary }}>{trader.shopName}</Text>
+                <Text style={{ fontSize: 12, color: COLORS.primary }}>{trader.bazar?.name}</Text>
+                <Text style={{ fontSize: 11, color: COLORS.textLight }}>📞 {trader.phone}</Text>
               </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -738,182 +926,222 @@ export default function BazarScreen() {
               <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectTrader(trader.id)}>
                 <Text style={styles.rejectBtnText}>✗ Reject</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteBtn} onPress={() => deleteTrader(trader.id)}>
-                <Text style={styles.deleteBtnText}>🗑</Text>
+              <TouchableOpacity style={styles.trashBtn} onPress={() => deleteTrader(trader.id)}>
+                <Text style={{ fontSize: 16 }}>🗑</Text>
               </TouchableOpacity>
             </View>
           </View>
         ))}
-        <View style={{ height: 20 }} />
-      </ScrollView>
-    );
-  };
 
-  // ====== BAZAR DETAIL MODAL (traders list) ======
-  const renderBazarDetail = () => (
-    <Modal visible={!!selectedBazar} animationType="slide" onRequestClose={() => setSelectedBazar(null)}>
-      <View style={styles.container}>
-        <View style={styles.detailHeader}>
-          <TouchableOpacity onPress={() => setSelectedBazar(null)}>
-            <Text style={styles.chatBack}>‹ Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.detailTitle}>{selectedBazar?.name}</Text>
-          <TouchableOpacity onPress={() => { setChatBazar(selectedBazar); setSelectedBazar(null); setActiveTab('chat'); }}>
-            <Text style={styles.joinChatBtn}>💬 Chat</Text>
+        {/* Bazar Management */}
+        <Text style={styles.dashSectionTitle}>🏪 Bazar Management</Text>
+        <View style={styles.addBazarRow}>
+          <TextInput style={[styles.input, { flex: 1 }]} placeholder="New bazar name..." value={newBazarName} onChangeText={setNewBazarName} placeholderTextColor={COLORS.textLight} />
+          <TouchableOpacity style={styles.addBazarBtn} onPress={addBazar}>
+            <Text style={{ color: '#fff', fontWeight: '700' }}>+ Add</Text>
           </TouchableOpacity>
         </View>
-        <FlatList
-          data={traders}
-          renderItem={({ item }) => renderTraderCard(item)}
-          keyExtractor={item => item.id}
-          refreshControl={<RefreshControl refreshing={loading} onRefresh={() => loadTraders(selectedBazar.id)} colors={[COLORS.primary]} />}
-          contentContainerStyle={{ padding: 12 }}
-          ListEmptyComponent={!loading && <View style={styles.empty}><Text style={styles.emptyIcon}>🏪</Text><Text style={styles.emptyText}>No traders registered yet</Text></View>}
-        />
+        {presidentBazars.map(b => (
+          <View key={b.id} style={styles.bazarManageRow}>
+            <Text style={{ flex: 1, fontWeight: '600', color: COLORS.text }}>{b.name}</Text>
+            <Text style={{ fontSize: 12, color: COLORS.textSecondary, marginRight: 10 }}>{b._count?.traders || 0} traders</Text>
+            <TouchableOpacity onPress={() => deleteBazar(b.id)}>
+              <Text style={{ color: COLORS.error, fontSize: 13 }}>🗑 Delete</Text>
+            </TouchableOpacity>
+          </View>
+        ))}
+
+        {/* Export CSV */}
+        <Text style={styles.dashSectionTitle}>📥 Export Traders (Excel/CSV)</Text>
+        <Text style={styles.sectionSub}>Download registered voters list bazar-wise</Text>
+        <View style={styles.bazarGrid}>
+          <TouchableOpacity style={[styles.bazarChip, exportBazarId === 'all' && styles.bazarChipSelected]} onPress={() => setExportBazarId('all')}>
+            <Text style={[styles.bazarChipText, exportBazarId === 'all' && { color: '#fff' }]}>All Bazars</Text>
+          </TouchableOpacity>
+          {presidentBazars.map(b => (
+            <TouchableOpacity key={b.id} style={[styles.bazarChip, exportBazarId === b.id && styles.bazarChipSelected]} onPress={() => setExportBazarId(b.id)}>
+              <Text style={[styles.bazarChipText, exportBazarId === b.id && { color: '#fff' }]}>{b.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TouchableOpacity style={[styles.submitBtn, { marginTop: 12 }]} onPress={exportTraders}>
+          <Text style={styles.submitBtnText}>📥 Download CSV File</Text>
+        </TouchableOpacity>
+        <View style={{ height: 40 }} />
       </View>
-    </Modal>
+    </ScrollView>
   );
 
-  // ====== TRADER DETAIL MODAL ======
-  const renderTraderDetail = () => (
+  // ========== TRADER DETAIL MODAL ==========
+  const renderTraderDetailModal = () => (
     <Modal visible={!!detailTrader} transparent animationType="slide" onRequestClose={() => setDetailTrader(null)}>
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { maxHeight: '70%' }]}>
+        <View style={styles.modalContent}>
           <ScrollView>
             <View style={{ alignItems: 'center', marginBottom: 16 }}>
-              {detailTrader?.photoUrl ? <Image source={{ uri: detailTrader.photoUrl }} style={styles.detailPhoto} /> : <View style={[styles.detailPhoto, styles.traderPhotoPlaceholder]}><Text style={{ fontSize: 40 }}>🏪</Text></View>}
-              <Text style={[styles.traderName, { fontSize: 20, marginTop: 10 }]}>{detailTrader?.fullName}</Text>
-              <Text style={styles.traderShop}>{detailTrader?.shopName}</Text>
+              {detailTrader?.photoUrl ? (
+                <Image source={{ uri: detailTrader.photoUrl }} style={styles.detailPhoto} />
+              ) : (
+                <View style={[styles.detailPhoto, styles.voterPhotoPlaceholder]}>
+                  <Text style={{ fontSize: 40 }}>🏪</Text>
+                </View>
+              )}
+              <Text style={{ fontSize: 20, fontWeight: '700', color: COLORS.text, marginTop: 10 }}>{detailTrader?.fullName}</Text>
+              <Text style={{ fontSize: 14, color: COLORS.textSecondary }}>{detailTrader?.shopName}</Text>
             </View>
-            <View style={styles.detailRow}><Text style={styles.detailLabel}>Bazar</Text><Text style={styles.detailValue}>{detailTrader?.bazar?.name}</Text></View>
-            <View style={styles.detailRow}><Text style={styles.detailLabel}>Phone</Text><Text style={styles.detailValue}>{detailTrader?.phone}</Text></View>
-            <View style={styles.detailRow}><Text style={styles.detailLabel}>Status</Text><Text style={[styles.detailValue, { color: detailTrader?.status === 'APPROVED' ? COLORS.success : COLORS.warning }]}>{detailTrader?.status}</Text></View>
-            <TouchableOpacity style={styles.callTraderBtn} onPress={() => Linking.openURL(`tel:${detailTrader?.phone}`)}>
-              <Text style={styles.callTraderText}>📞 Call Trader</Text>
+            <View style={styles.detailInfoRow}>
+              <Text style={styles.detailInfoLabel}>Bazar</Text>
+              <Text style={styles.detailInfoValue}>{detailTrader?.bazar?.name}</Text>
+            </View>
+            <View style={styles.detailInfoRow}>
+              <Text style={styles.detailInfoLabel}>Phone</Text>
+              <Text style={styles.detailInfoValue}>{detailTrader?.phone}</Text>
+            </View>
+            <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL(`tel:${detailTrader?.phone}`)}>
+              <Text style={styles.callBtnText}>📞 Call Trader</Text>
             </TouchableOpacity>
           </ScrollView>
-          <TouchableOpacity onPress={() => setDetailTrader(null)} style={styles.closeDetailBtn}>
-            <Text style={styles.closeDetailText}>Close</Text>
+          <TouchableOpacity onPress={() => setDetailTrader(null)} style={styles.closeBtn}>
+            <Text style={styles.closeBtnText}>Close</Text>
           </TouchableOpacity>
         </View>
       </View>
     </Modal>
   );
 
+  // ========== LOADING ==========
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={{ marginTop: 12, color: COLORS.textSecondary }}>Loading...</Text>
+      </View>
+    );
+  }
+
+  // ========== MAIN RENDER ==========
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Shahkot Bazar</Text>
-        <Text style={styles.headerSub}>Trader Community & Market</Text>
-      </View>
-
-      {/* Tab Bar */}
-      <View style={styles.tabBar}>
-        {[
-          { key: 'bazars', label: '🏪 Bazars' },
-          { key: 'chat', label: '💬 Chat' },
-          { key: 'search', label: '🔍 Search' },
-          { key: 'register', label: '📝 Register' },
-          { key: 'president', label: '👔 President' },
-        ].map(tab => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Tab Content */}
-      {activeTab === 'bazars' && renderBazarsTab()}
-      {activeTab === 'chat' && renderChatTab()}
-      {activeTab === 'search' && renderSearchTab()}
-      {activeTab === 'register' && renderRegisterTab()}
-      {activeTab === 'president' && renderPresidentTab()}
-
-      {/* Modals */}
-      {renderBazarDetail()}
-      {renderTraderDetail()}
-    </View>
+    <SafeAreaView style={styles.container}>
+      {renderHeader()}
+      {currentView === 'home' && renderHome()}
+      {currentView === 'register' && renderRegister()}
+      {currentView === 'pending' && renderPending()}
+      {currentView === 'features' && renderFeatures()}
+      {currentView === 'chat' && renderChatSelect()}
+      {currentView === 'chatRoom' && renderChatRoom()}
+      {currentView === 'voters' && renderVoters()}
+      {currentView === 'presidentLogin' && renderPresidentLogin()}
+      {currentView === 'presidentDashboard' && renderPresidentDashboard()}
+      {renderTraderDetailModal()}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { backgroundColor: COLORS.primary, padding: 16, paddingTop: 12 },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.white },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  viewContainer: { flex: 1 },
 
-  // Tab Bar
-  tabBar: { flexDirection: 'row', backgroundColor: COLORS.surface, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center' },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: COLORS.primary },
-  tabText: { fontSize: 11, color: COLORS.textSecondary, fontWeight: '600' },
-  tabTextActive: { color: COLORS.primary },
+  // Main Header
+  header: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, padding: 16, paddingTop: 12 },
+  headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.white },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  headerPresidentBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+
+  // Sub Header (feature screens)
+  subHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, paddingVertical: 12, paddingHorizontal: 8 },
+  backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  backBtnText: { fontSize: 28, color: COLORS.white, fontWeight: '700' },
+  subHeaderTitle: { flex: 1, fontSize: 16, fontWeight: '700', color: COLORS.white, textAlign: 'center' },
+
+  // Guide Card
+  guideCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 24, alignItems: 'center', marginTop: 16, width: '100%', elevation: 2, borderWidth: 1, borderColor: COLORS.primary + '20' },
+  guideUrdu: { fontSize: 16, color: COLORS.text, textAlign: 'center', lineHeight: 26, fontWeight: '600' },
+  guideDivider: { width: 60, height: 2, backgroundColor: COLORS.primary + '30', marginVertical: 14 },
+  guideEn: { fontSize: 13, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
+
+  // Alert Card
+  alertCard: { backgroundColor: COLORS.warning + '15', borderRadius: 12, padding: 14, marginTop: 14, width: '100%', borderWidth: 1, borderColor: COLORS.warning + '30' },
+  alertText: { color: COLORS.warning, fontSize: 14, textAlign: 'center', fontWeight: '600' },
+
+  // Big Button
+  bigBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, paddingVertical: 18, paddingHorizontal: 24, borderRadius: 14, marginTop: 24, width: '100%', elevation: 3 },
+  bigBtnText: { fontSize: 17, fontWeight: '700', color: COLORS.white },
+  bigBtnSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+
+  // President Link
+  presidentLink: { marginTop: 24, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
+  presidentLinkText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 14 },
+
+  // Form
+  formTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text, textAlign: 'center' },
+  formSubtitle: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', marginBottom: 16 },
+  inputLabel: { fontSize: 13, fontWeight: '600', color: COLORS.text, marginBottom: 6, marginTop: 14 },
+  input: { backgroundColor: COLORS.surface, borderRadius: 10, padding: 13, fontSize: 14, color: COLORS.text, borderWidth: 1, borderColor: COLORS.border },
+
+  // Bazar Grid
+  bazarGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
+  bazarChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
+  bazarChipSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  bazarChipText: { fontSize: 13, color: COLORS.text },
+
+  // Photo Picker
+  photoPicker: { width: 100, height: 100, borderRadius: 12, overflow: 'hidden', marginTop: 4 },
+  photoPreview: { width: 100, height: 100, borderRadius: 12 },
+  photoPlaceholder: { width: 100, height: 100, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, justifyContent: 'center', alignItems: 'center' },
+  photoPlaceholderText: { fontSize: 10, color: COLORS.textLight, textAlign: 'center', marginTop: 4 },
+
+  // Submit Button
+  submitBtn: { backgroundColor: COLORS.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
+  submitBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 16 },
+
+  // Status Card
+  statusCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 28, alignItems: 'center', width: '100%', elevation: 2, borderWidth: 1, borderColor: COLORS.primary + '20' },
+  statusTitle: { fontSize: 22, fontWeight: '700', color: COLORS.text },
+  statusMsg: { fontSize: 14, color: COLORS.text, textAlign: 'center', lineHeight: 22, marginTop: 8 },
+
+  // Pending Details
+  pendingDetails: { backgroundColor: COLORS.background, borderRadius: 10, padding: 14, marginTop: 16, width: '100%' },
+  pendingDetailText: { fontSize: 14, color: COLORS.text, marginBottom: 4 },
+
+  // Approved Banner
+  approvedBanner: { backgroundColor: COLORS.success + '12', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: COLORS.success + '30', alignItems: 'center' },
+  approvedBannerText: { fontSize: 16, fontWeight: '700', color: COLORS.success },
+  approvedBannerSub: { fontSize: 13, color: COLORS.textSecondary, marginTop: 4 },
+
+  // Feature Card
+  featureCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, padding: 18, borderRadius: 14, marginBottom: 12, elevation: 2 },
+  featureIcon: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  featureTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  featureSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 3 },
 
   // Section
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginTop: 16, marginBottom: 8, paddingHorizontal: 16 },
-  sectionSub: { fontSize: 13, color: COLORS.textSecondary, paddingHorizontal: 16, marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text, marginBottom: 6 },
+  sectionSub: { fontSize: 13, color: COLORS.textSecondary, marginBottom: 14 },
 
-  // Bazar Card
-  bazarCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, marginHorizontal: 16, marginBottom: 10, padding: 14, borderRadius: 12, elevation: 1 },
-  bazarIcon: { width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.primary + '12', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  bazarName: { fontSize: 16, fontWeight: '700', color: COLORS.text },
-  bazarCount: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
-
-  // Trader Card
-  traderCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, padding: 12, borderRadius: 12, marginBottom: 8, elevation: 1 },
-  traderPhoto: { width: 50, height: 50, borderRadius: 25, marginRight: 12 },
-  traderPhotoPlaceholder: { backgroundColor: COLORS.gray, justifyContent: 'center', alignItems: 'center' },
-  traderName: { fontSize: 15, fontWeight: '700', color: COLORS.text },
-  traderShop: { fontSize: 13, color: COLORS.textSecondary },
-  traderBazar: { fontSize: 12, color: COLORS.primary, marginTop: 2 },
-
-  // Status Badge
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  statusApproved: { backgroundColor: COLORS.success + '20' },
-  statusPending: { backgroundColor: COLORS.warning + '20' },
-  statusRejected: { backgroundColor: COLORS.error + '20' },
-  statusText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
-
-  // My Status
-  myStatusCard: { backgroundColor: COLORS.surface, margin: 16, padding: 16, borderRadius: 14, borderWidth: 1, borderColor: COLORS.primary + '30', elevation: 1 },
-  myStatusTitle: { fontSize: 16, fontWeight: '700', color: COLORS.text, marginBottom: 6 },
-  myStatusRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  myStatusLabel: { fontSize: 13, color: COLORS.textSecondary },
-  myStatusInfo: { fontSize: 14, color: COLORS.text, marginTop: 6 },
-  pendingNote: { fontSize: 12, color: COLORS.warning, marginTop: 6, fontStyle: 'italic' },
-  approvedNote: { fontSize: 12, color: COLORS.success, marginTop: 6 },
-
-  // Register CTA
-  registerCta: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary + '10', marginHorizontal: 16, padding: 16, borderRadius: 12, borderWidth: 1, borderColor: COLORS.primary + '30', marginTop: 8 },
-  registerCtaIcon: { fontSize: 28, marginRight: 12 },
-  registerCtaTitle: { fontSize: 15, fontWeight: '700', color: COLORS.primary },
-  registerCtaSub: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
+  // Bazar Select Card
+  bazarSelectCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, padding: 14, borderRadius: 12, marginBottom: 10, elevation: 1 },
+  bazarSelectIcon: { width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.primary + '12', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  bazarSelectName: { fontSize: 16, fontWeight: '700', color: COLORS.text },
+  bazarSelectCount: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
 
   // Chat
-  chatHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, padding: 12, gap: 12 },
-  chatBack: { fontSize: 18, color: COLORS.white, fontWeight: '700' },
-  chatHeaderTitle: { fontSize: 17, fontWeight: '700', color: COLORS.white, flex: 1 },
   chatBubble: { maxWidth: '80%', padding: 10, borderRadius: 12, marginBottom: 6 },
   chatBubbleOwn: { backgroundColor: COLORS.primary, alignSelf: 'flex-end', borderBottomRightRadius: 4 },
-  chatBubbleOther: { backgroundColor: COLORS.surface, alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
-  chatSender: { fontSize: 11, fontWeight: '700', color: COLORS.primary, marginBottom: 2 },
-  chatText: { fontSize: 14, color: COLORS.text, lineHeight: 20 },
+  chatBubbleOther: { backgroundColor: COLORS.surface, alignSelf: 'flex-start', borderBottomLeftRadius: 4, elevation: 1 },
+  chatSenderName: { fontSize: 11, fontWeight: '700', color: COLORS.primary, marginBottom: 2 },
+  chatMsgText: { fontSize: 14, color: COLORS.text, lineHeight: 20 },
   chatTime: { fontSize: 10, color: COLORS.textLight, marginTop: 4, textAlign: 'right' },
   chatImage: { width: 160, height: 120, borderRadius: 8, marginRight: 6 },
-  chatInputRow: { flexDirection: 'row', alignItems: 'flex-end', padding: 8, backgroundColor: COLORS.surface, borderTopWidth: 1, borderTopColor: COLORS.border },
-  chatIconBtn: { padding: 8 },
+
+  // Chat Input
+  chatInputSafe: { backgroundColor: COLORS.surface },
+  chatInputContainer: { flexDirection: 'row', alignItems: 'flex-end', padding: 8, paddingBottom: Platform.OS === 'android' ? 10 : 8, backgroundColor: COLORS.surface, borderTopWidth: 1, borderTopColor: COLORS.border },
+  chatActionBtn: { padding: 8 },
   chatInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, fontSize: 14, color: COLORS.text, maxHeight: 100 },
-  chatSendBtn: { backgroundColor: COLORS.primary, width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginLeft: 6 },
-  chatDisabled: { padding: 16, backgroundColor: COLORS.surface, borderTopWidth: 1, borderTopColor: COLORS.border, alignItems: 'center' },
-  chatDisabledText: { fontSize: 13, color: COLORS.textLight, fontStyle: 'italic' },
+  chatSendBtn: { backgroundColor: COLORS.primary, width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', marginLeft: 6 },
 
   // Poll
-  pollBubble: { backgroundColor: COLORS.surface, alignSelf: 'stretch', maxWidth: '100%', borderWidth: 1, borderColor: COLORS.primary + '30' },
+  pollBubble: { backgroundColor: COLORS.surface, alignSelf: 'stretch', maxWidth: '100%', borderWidth: 1, borderColor: COLORS.primary + '30', elevation: 1 },
   pollSender: { fontSize: 11, fontWeight: '700', color: COLORS.primary, marginBottom: 4 },
   pollQuestion: { fontSize: 15, fontWeight: '700', color: COLORS.text, marginBottom: 10 },
   pollOption: { backgroundColor: COLORS.background, padding: 12, borderRadius: 8, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -922,76 +1150,71 @@ const styles = StyleSheet.create({
   pollPct: { fontSize: 12, color: COLORS.primary, fontWeight: '600' },
   pollTotal: { fontSize: 11, color: COLORS.textLight, marginTop: 4 },
 
-  // Image preview
+  // Image Preview
   imagePreviewRow: { padding: 8, backgroundColor: COLORS.surface },
   previewItem: { position: 'relative', marginRight: 8 },
-  previewImage: { width: 60, height: 60, borderRadius: 8 },
+  previewThumb: { width: 60, height: 60, borderRadius: 8 },
   previewRemove: { position: 'absolute', top: -6, right: -6, backgroundColor: COLORS.error, width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
 
-  // Search
-  searchBar: { flexDirection: 'row', backgroundColor: COLORS.surface, borderRadius: 12, overflow: 'hidden', marginBottom: 16 },
-  searchInput: { flex: 1, padding: 14, fontSize: 15, color: COLORS.text },
-  searchButton: { backgroundColor: COLORS.primary, paddingHorizontal: 16, justifyContent: 'center' },
-  searchBtnText: { color: COLORS.white, fontWeight: '600' },
+  // Search Bar
+  searchBarContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, marginHorizontal: 12, marginVertical: 10, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border },
+  searchInput: { flex: 1, paddingVertical: 12, paddingHorizontal: 8, fontSize: 14, color: COLORS.text },
 
-  // Registration
-  inputLabel: { fontSize: 13, fontWeight: '600', color: COLORS.text, marginBottom: 6, marginTop: 12 },
-  formInput: { backgroundColor: COLORS.surface, borderRadius: 10, padding: 12, fontSize: 14, color: COLORS.text, borderWidth: 1, borderColor: COLORS.border },
-  bazarPicker: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
-  bazarPickerItem: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  bazarPickerSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  bazarPickerText: { fontSize: 13, color: COLORS.text },
-  photoPicker: { width: 100, height: 100, borderRadius: 12, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, justifyContent: 'center', alignItems: 'center', marginTop: 4 },
-  photoPreview: { width: 100, height: 100, borderRadius: 12 },
-  photoPickerText: { fontSize: 12, color: COLORS.textLight, textAlign: 'center' },
-  regAvatar: { width: 60, height: 60, borderRadius: 30 },
-  submitBtn: { backgroundColor: COLORS.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
-  submitBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 16 },
+  // Voter Card
+  voterCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, padding: 12, borderRadius: 12, marginBottom: 8, elevation: 1 },
+  voterPhoto: { width: 48, height: 48, borderRadius: 24, marginRight: 12 },
+  voterPhotoPlaceholder: { backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: COLORS.border },
+  voterName: { fontSize: 15, fontWeight: '700', color: COLORS.text },
+  voterShop: { fontSize: 13, color: COLORS.textSecondary },
+  voterPhone: { fontSize: 12, color: COLORS.primary, marginTop: 2 },
 
-  // President
-  presidentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surface, padding: 16, borderRadius: 12, marginBottom: 12 },
+  // President Dashboard
+  presidentHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surface, padding: 16, borderRadius: 12, marginBottom: 16, elevation: 1 },
   presidentName: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  presidentEmail: { fontSize: 12, color: COLORS.textSecondary },
+  presidentEmailText: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   logoutBtn: { backgroundColor: COLORS.error + '15', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 },
   logoutText: { color: COLORS.error, fontWeight: '600', fontSize: 13 },
-  pendingCard: { backgroundColor: COLORS.surface, padding: 14, borderRadius: 12, marginHorizontal: 16, marginBottom: 10, elevation: 1 },
+
+  // Stats
+  statsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  statCard: { flex: 1, backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, alignItems: 'center', elevation: 1 },
+  statNum: { fontSize: 22, fontWeight: '700', color: COLORS.primary },
+  statLabel: { fontSize: 11, color: COLORS.textSecondary, marginTop: 4 },
+
+  // Dashboard
+  dashSectionTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text, marginTop: 20, marginBottom: 10 },
+  emptyMsg: { fontSize: 13, color: COLORS.textLight, fontStyle: 'italic', marginBottom: 10 },
+
+  // Pending Card
+  pendingCard: { backgroundColor: COLORS.surface, padding: 14, borderRadius: 12, marginBottom: 10, elevation: 1, borderLeftWidth: 3, borderLeftColor: COLORS.warning },
   pendingPhoto: { width: 45, height: 45, borderRadius: 22 },
   approveBtn: { flex: 1, backgroundColor: COLORS.success + '15', padding: 10, borderRadius: 8, alignItems: 'center' },
   approveBtnText: { color: COLORS.success, fontWeight: '700', fontSize: 13 },
   rejectBtn: { flex: 1, backgroundColor: COLORS.error + '15', padding: 10, borderRadius: 8, alignItems: 'center' },
   rejectBtnText: { color: COLORS.error, fontWeight: '700', fontSize: 13 },
-  deleteBtn: { backgroundColor: COLORS.error + '10', padding: 10, borderRadius: 8 },
-  deleteBtnText: { fontSize: 16 },
+  trashBtn: { backgroundColor: COLORS.error + '10', padding: 10, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
 
-  // Detail modal
-  detailHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.primary, padding: 12, gap: 12 },
-  detailTitle: { fontSize: 17, fontWeight: '700', color: COLORS.white, flex: 1 },
-  joinChatBtn: { color: COLORS.white, fontWeight: '600', fontSize: 14 },
+  // Bazar Management
+  addBazarRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 12 },
+  addBazarBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 10 },
+  bazarManageRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, padding: 12, borderRadius: 10, marginBottom: 6, elevation: 1 },
+
+  // Detail Modal
   detailPhoto: { width: 100, height: 100, borderRadius: 50 },
-  detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  detailLabel: { fontSize: 14, color: COLORS.textSecondary },
-  detailValue: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  callTraderBtn: { backgroundColor: COLORS.success + '15', padding: 14, borderRadius: 10, alignItems: 'center', marginTop: 16, borderWidth: 1, borderColor: COLORS.success + '30' },
-  callTraderText: { color: COLORS.success, fontWeight: '700', fontSize: 15 },
-  closeDetailBtn: { padding: 14, alignItems: 'center', marginTop: 10 },
-  closeDetailText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 15 },
+  detailInfoRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  detailInfoLabel: { fontSize: 14, color: COLORS.textSecondary },
+  detailInfoValue: { fontSize: 14, fontWeight: '600', color: COLORS.text },
+  callBtn: { backgroundColor: COLORS.success + '15', padding: 14, borderRadius: 10, alignItems: 'center', marginTop: 16, borderWidth: 1, borderColor: COLORS.success + '30' },
+  callBtnText: { color: COLORS.success, fontWeight: '700', fontSize: 15 },
+  closeBtn: { padding: 14, alignItems: 'center', marginTop: 10 },
+  closeBtnText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 15 },
 
-  // Poll modal
-  addOptionBtn: { padding: 10, alignItems: 'center', marginTop: 8 },
-  addOptionText: { color: COLORS.primary, fontWeight: '600' },
-
-  // Modals
+  // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: COLORS.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' },
   modalTitle: { fontSize: 20, fontWeight: '700', color: COLORS.text, marginBottom: 12 },
-  modalActions: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  cancelBtn: { flex: 1, padding: 14, borderRadius: 10, alignItems: 'center', backgroundColor: COLORS.background },
-  cancelBtnText: { color: COLORS.textSecondary, fontWeight: '600', fontSize: 15 },
-  saveBtn: { flex: 2, padding: 14, borderRadius: 10, alignItems: 'center', backgroundColor: COLORS.primary },
-  saveBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 15 },
 
   // Empty
-  empty: { alignItems: 'center', paddingVertical: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { fontSize: 16, color: COLORS.textSecondary, fontWeight: '600' },
+  emptyState: { alignItems: 'center', paddingVertical: 50 },
+  emptyText: { fontSize: 15, color: COLORS.textSecondary, fontWeight: '600', marginTop: 10, textAlign: 'center' },
 });

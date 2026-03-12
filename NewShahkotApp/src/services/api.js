@@ -392,15 +392,22 @@ export const bazarAPI = {
     headers: presidentToken ? { 'x-president-token': presidentToken } : {},
   }),
   getAllTraders: () => api.get('/bazar/all-traders'),
-  // Bazar management (admin)
-  addBazar: (name) => api.post('/bazar/bazars', { name }),
-  deleteBazar: (id) => api.delete(`/bazar/bazars/${id}`),
+  // Bazar management (admin/president)
+  addBazar: (name, presidentToken) => api.post('/bazar/bazars', { name }, {
+    headers: presidentToken ? { 'x-president-token': presidentToken } : {},
+  }),
+  deleteBazar: (id, presidentToken) => api.delete(`/bazar/bazars/${id}`, {
+    headers: presidentToken ? { 'x-president-token': presidentToken } : {},
+  }),
   // President
   presidentLogin: (data) => api.post('/bazar/president/login', data),
   presidentDashboard: (presidentToken) => api.get('/bazar/president/dashboard', {
     headers: { 'x-president-token': presidentToken },
   }),
   createPresident: (data) => api.post('/bazar/president/create', data),
+  // Export
+  getExportUrl: (presidentToken, bazarId) =>
+    `${API_URL}/bazar/export-traders?presidentToken=${encodeURIComponent(presidentToken)}${bazarId && bazarId !== 'all' ? '&bazarId=' + bazarId : ''}`,
 };
 
 export default api;

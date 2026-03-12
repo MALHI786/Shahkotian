@@ -5,6 +5,7 @@ const prisma = require('../config/database');
 const { authenticate, adminOnly } = require('../middleware/auth');
 const { uploadToCloudinary, uploadVideoToCloudinary } = require('../utils/cloudinaryUpload');
 const { upload, uploadMedia } = require('../utils/upload');
+const { sendPushToUser } = require('../utils/pushNotification');
 
 const router = express.Router();
 
@@ -99,6 +100,31 @@ router.get('/my-status', authenticate, async (req, res) => {
   }
 });
 
+// ============ SEARCH TRADERS (must be before :bazarId) ============
+router.get('/traders/search', authenticate, async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q) return res.json({ traders: [] });
+
+    const traders = await prisma.trader.findMany({
+      where: {
+        status: 'APPROVED',
+        OR: [
+          { fullName: { contains: q, mode: 'insensitive' } },
+          { shopName: { contains: q, mode: 'insensitive' } },
+          { phone: { contains: q } },
+        ],
+      },
+      include: { bazar: true },
+      take: 20,
+    });
+    res.json({ traders });
+  } catch (error) {
+    console.error('Search traders error:', error);
+    res.status(500).json({ error: 'Search failed.' });
+  }
+});
+
 // ============ TRADERS BY BAZAR ============
 router.get('/traders/:bazarId', authenticate, async (req, res) => {
   try {
@@ -111,30 +137,6 @@ router.get('/traders/:bazarId', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Traders by bazar error:', error);
     res.status(500).json({ error: 'Failed to load traders.' });
-  }
-});
-
-// ============ SEARCH TRADERS ============
-router.get('/traders/search', authenticate, async (req, res) => {
-  try {
-    const { q } = req.query;
-    if (!q) return res.json({ traders: [] });
-
-    const traders = await prisma.trader.findMany({
-      where: {
-        status: 'APPROVED',
-        OR: [
-          { fullName: { contains: q, mode: 'insensitive' } },
-          { shopName: { contains: q, mode: 'insensitive' } },
-        ],
-      },
-      include: { bazar: true },
-      take: 20,
-    });
-    res.json({ traders });
-  } catch (error) {
-    console.error('Search traders error:', error);
-    res.status(500).json({ error: 'Search failed.' });
   }
 });
 
@@ -359,6 +361,19 @@ router.put('/:id/approve', authenticate, async (req, res) => {
       data: { status: 'APPROVED' },
       include: { bazar: true },
     });
+
+    // Send push + in-app notification to trader
+    try {
+      await sendPushToUser(
+        trader.userId,
+        'Registration Approved ✅',
+        'آپ کی تاجر رجسٹریشن منظور ہو گئی ہے۔ Your trader registration has been approved.',
+        { type: 'TRADER_APPROVED', traderId: trader.id }
+      );
+    } catch (err) {
+      console.error('Approval notification error:', err);
+    }
+
     res.json({ trader, message: 'Trader approved.' });
   } catch (error) {
     console.error('Approve trader error:', error);
@@ -406,9 +421,16 @@ router.delete('/trader/:id', authenticate, async (req, res) => {
   }
 });
 
-// ============ ADMIN: ADD BAZAR ============
-router.post('/bazars', authenticate, adminOnly, async (req, res) => {
+// ============ ADMIN/PRESIDENT: ADD BAZAR ============
+router.post('/bazars', authenticate, async (req, res) => {
   try {
+    if (req.user.role !== 'ADMIN') {
+      const presidentToken = req.headers['x-president-token'];
+      if (!presidentToken) return res.status(403).json({ error: 'Access denied.' });
+      try { jwt.verify(presidentToken, process.env.JWT_SECRET); }
+      catch { return res.status(403).json({ error: 'Invalid president token.' }); }
+    }
+
     const { name } = req.body;
     if (!name) return res.status(400).json({ error: 'Bazar name is required.' });
 
@@ -423,14 +445,56 @@ router.post('/bazars', authenticate, adminOnly, async (req, res) => {
   }
 });
 
-// ============ ADMIN: DELETE BAZAR ============
-router.delete('/bazars/:id', authenticate, adminOnly, async (req, res) => {
+// ============ ADMIN/PRESIDENT: DELETE BAZAR ============
+router.delete('/bazars/:id', authenticate, async (req, res) => {
   try {
+    if (req.user.role !== 'ADMIN') {
+      const presidentToken = req.headers['x-president-token'];
+      if (!presidentToken) return res.status(403).json({ error: 'Access denied.' });
+      try { jwt.verify(presidentToken, process.env.JWT_SECRET); }
+      catch { return res.status(403).json({ error: 'Invalid president token.' }); }
+    }
+
     await prisma.bazar.delete({ where: { id: req.params.id } });
     res.json({ success: true, message: 'Bazar deleted.' });
   } catch (error) {
     console.error('Delete bazar error:', error);
     res.status(500).json({ error: 'Failed to delete bazar.' });
+  }
+});
+
+// ============ EXPORT TRADERS CSV ============
+router.get('/export-traders', async (req, res) => {
+  try {
+    const { presidentToken, bazarId } = req.query;
+    if (!presidentToken) return res.status(403).json({ error: 'Access denied.' });
+    try { jwt.verify(presidentToken, process.env.JWT_SECRET); }
+    catch { return res.status(403).json({ error: 'Invalid token.' }); }
+
+    const where = { status: 'APPROVED' };
+    if (bazarId && bazarId !== 'all') where.bazarId = bazarId;
+
+    const traders = await prisma.trader.findMany({
+      where,
+      include: { bazar: true },
+      orderBy: [{ bazar: { name: 'asc' } }, { fullName: 'asc' }],
+    });
+
+    const csvRows = ['Full Name,Shop Name,Phone,Bazar'];
+    traders.forEach(t => {
+      const name = (t.fullName || '').replace(/"/g, '""');
+      const shop = (t.shopName || '').replace(/"/g, '""');
+      const phone = (t.phone || '').replace(/"/g, '""');
+      const bazar = (t.bazar?.name || '').replace(/"/g, '""');
+      csvRows.push(`"${name}","${shop}","${phone}","${bazar}"`);
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="traders_${Date.now()}.csv"`);
+    res.send('\uFEFF' + csvRows.join('\n'));
+  } catch (error) {
+    console.error('Export traders error:', error);
+    res.status(500).json({ error: 'Failed to export.' });
   }
 });
 
