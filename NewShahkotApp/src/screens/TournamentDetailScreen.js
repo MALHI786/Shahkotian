@@ -13,6 +13,7 @@ import {
 import { COLORS, SPORT_TYPES } from '../config/constants';
 import { tournamentsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import AdBanner from '../components/AdBanner';
 
 export default function TournamentDetailScreen({ route, navigation }) {
   // Accept either tournamentId or id from navigation params
@@ -157,6 +158,8 @@ export default function TournamentDetailScreen({ route, navigation }) {
           <View style={{ width: 50 }} />
         )}
       </View>
+
+      <AdBanner />
 
       {/* Management Actions for Creator */}
       {canManage && (

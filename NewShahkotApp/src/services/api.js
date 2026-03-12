@@ -357,4 +357,50 @@ export const clothBrandsAPI = {
   }),
 };
 
+// ============ BAZAR / TRADER API ============
+export const bazarAPI = {
+  // Bazars
+  getBazars: () => api.get('/bazar/bazars'),
+  // Trader registration
+  register: (formData) => api.post('/bazar/register', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
+  getMyStatus: () => api.get('/bazar/my-status'),
+  // Traders
+  getTraders: (bazarId) => api.get(`/bazar/traders/${bazarId}`),
+  searchTraders: (q) => api.get('/bazar/traders/search', { params: { q } }),
+  // Chat
+  getMessages: (bazarId, page = 1) => api.get('/bazar/chat/messages', { params: { bazarId, page } }),
+  sendMessage: (formData) => api.post('/bazar/chat/send', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 300000,
+  }),
+  createPoll: (data) => api.post('/bazar/chat/poll', data),
+  votePoll: (messageId, optionIndex) => api.post(`/bazar/chat/poll/${messageId}/vote`, { optionIndex }),
+  deleteMessage: (id) => api.delete(`/bazar/chat/messages/${id}`),
+  // Admin/President
+  getPending: (presidentToken) => api.get('/bazar/pending', {
+    headers: presidentToken ? { 'x-president-token': presidentToken } : {},
+  }),
+  approveTrader: (id, presidentToken) => api.put(`/bazar/${id}/approve`, {}, {
+    headers: presidentToken ? { 'x-president-token': presidentToken } : {},
+  }),
+  rejectTrader: (id, presidentToken) => api.put(`/bazar/${id}/reject`, {}, {
+    headers: presidentToken ? { 'x-president-token': presidentToken } : {},
+  }),
+  deleteTrader: (id, presidentToken) => api.delete(`/bazar/trader/${id}`, {
+    headers: presidentToken ? { 'x-president-token': presidentToken } : {},
+  }),
+  getAllTraders: () => api.get('/bazar/all-traders'),
+  // Bazar management (admin)
+  addBazar: (name) => api.post('/bazar/bazars', { name }),
+  deleteBazar: (id) => api.delete(`/bazar/bazars/${id}`),
+  // President
+  presidentLogin: (data) => api.post('/bazar/president/login', data),
+  presidentDashboard: (presidentToken) => api.get('/bazar/president/dashboard', {
+    headers: { 'x-president-token': presidentToken },
+  }),
+  createPresident: (data) => api.post('/bazar/president/create', data),
+};
+
 export default api;

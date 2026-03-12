@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
 import { dmAPI } from '../services/api';
+import AdBanner from '../components/AdBanner';
 
 export default function DMListScreen({ navigation }) {
   const { user } = useAuth();
@@ -125,6 +126,8 @@ export default function DMListScreen({ navigation }) {
         <Text style={styles.headerTitle}>Messages</Text>
         <View style={{ width: 60 }} />
       </View>
+
+      <AdBanner />
 
       <FlatList
         data={chats}

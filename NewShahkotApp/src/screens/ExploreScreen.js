@@ -5,6 +5,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../config/constants';
 import { useLanguage } from '../context/LanguageContext';
+import AdBanner from '../components/AdBanner';
 
 function getCategories(t) {
   return [
@@ -91,6 +92,8 @@ export default function ExploreScreen({ navigation }) {
           )}
         </View>
       </View>
+
+      <AdBanner />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
         {/* Quick Actions */}

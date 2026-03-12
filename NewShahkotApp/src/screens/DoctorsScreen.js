@@ -442,7 +442,8 @@ export default function DoctorsScreen({ navigation, route }) {
           )}
         </View>
         <Text style={styles.addressText}>📍 {item.address}</Text>
-        {item.timings && <Text style={styles.timingsText}>🕐 {item.timings}</Text>}
+        {item.startTime && item.endTime && <Text style={styles.timingsText}>🕐 {formatTo12Hour(item.startTime)} - {formatTo12Hour(item.endTime)}</Text>}
+        {item.weekdays && <Text style={styles.timingsText}>📅 {item.weekdays}</Text>}
         {item.fee != null && <Text style={styles.feeText}>💰 Rs. {item.fee}</Text>}
         {item.isAvailableNow
           ? <View style={styles.availableNow}><Text style={styles.availableNowText}>🟢 Available Now</Text></View>
@@ -569,16 +570,14 @@ export default function DoctorsScreen({ navigation, route }) {
             <View style={{ padding: 20 }}>
               {item.clinicName && <DetailRow label="Clinic" value={item.clinicName} />}
               <DetailRow label="Address" value={item.address} />
-              {item.timings && <DetailRow label="Timings" value={item.timings} />}
+              {item.startTime && item.endTime && <DetailRow label="Hours" value={`${formatTo12Hour(item.startTime)} - ${formatTo12Hour(item.endTime)}`} />}
+              {item.weekdays && <DetailRow label="Available Days" value={item.weekdays} />}
               {item.fee != null && <DetailRow label="Fee" value={`Rs. ${item.fee}`} highlight />}
               <DetailRow label="Phone" value={item.phone} />
               {item.onlineBooking && (
                 <View style={styles.onlineBookingInfo}>
                   <Text style={styles.onlineInfoTitle}>📋 Online Booking Available</Text>
                   {item.paymentMethod && <Text style={styles.onlineInfoText}>Payment: {item.paymentMethod}</Text>}
-                  {item.startTime && item.endTime && (
-                    <Text style={styles.onlineInfoText}>Hours: {formatTo12Hour(item.startTime)} - {formatTo12Hour(item.endTime)}</Text>
-                  )}
                 </View>
               )}
               {isAdmin && (

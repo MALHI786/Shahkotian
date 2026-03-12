@@ -6,6 +6,7 @@ import { COLORS } from '../config/constants';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import AdBanner from '../components/AdBanner';
 
 export default function ProfileScreen({ navigation }) {
   const { user, logout, isAdmin, updateUser } = useAuth();
@@ -133,6 +134,8 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.roleText}>{user?.role?.replace('_', ' ')}</Text>
         </View>
       </View>
+
+      <AdBanner />
 
       {/* Info Cards */}
       <View style={styles.infoSection}>

@@ -113,6 +113,7 @@ model User {
   jobs             Job[]
   jobApplications  JobApplication[]
   appointments     Appointment[]
+  traderProfile    Trader?
 
   @@index([latitude, longitude])
 }
@@ -675,4 +676,80 @@ model BrandDeal {
 
   @@index([brandId])
   @@index([isActive, createdAt(sort: Desc)])
+}
+
+// ============ BAZAR / TRADER SYSTEM ============
+
+enum TraderStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Bazar {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  traders          Trader[]
+  bazarChatMessages BazarChatMessage[]
+
+  @@index([isActive])
+}
+
+model Trader {
+  id        String       @id @default(uuid())
+  userId    String
+  fullName  String
+  shopName  String
+  phone     String
+  photoUrl  String?
+  bazarId   String
+  status    TraderStatus @default(PENDING)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bazar Bazar @relation(fields: [bazarId], references: [id], onDelete: Cascade)
+  chatMessages BazarChatMessage[]
+
+  @@unique([userId])
+  @@index([bazarId, status])
+  @@index([status])
+}
+
+model BazarChatMessage {
+  id             String   @id @default(uuid())
+  traderId       String
+  bazarId        String?
+  text           String?
+  images         String[]
+  videos         String[]
+  voiceUrl       String?
+  voiceDuration  Int?
+  // Poll fields (inline for simplicity)
+  pollQuestion   String?
+  pollOptions    String[] // JSON-encoded option strings
+  pollVotes      String[] // JSON-encoded: ["optionIndex:oderId", ...]
+  createdAt      DateTime @default(now())
+
+  trader Trader @relation(fields: [traderId], references: [id], onDelete: Cascade)
+  bazar  Bazar? @relation(fields: [bazarId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([traderId])
+}
+
+// ============ PRESIDENT ============
+
+model President {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }

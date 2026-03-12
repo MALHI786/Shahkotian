@@ -221,7 +221,7 @@ export default function OnboardingScreen({ navigation }) {
     <View style={styles.container}>
       {/* Progress dots */}
       <View style={styles.dotsRow}>
-        {[0, 1, needsBloodStep ? 2 : null, 3].filter(Boolean !== null).map((_, i) => (
+        {[0, 1, needsBloodStep ? 2 : null, 3].filter(Boolean).map((_, i) => (
           <View key={i} style={[styles.dot, i <= step && styles.dotActive]} />
         ))}
       </View>

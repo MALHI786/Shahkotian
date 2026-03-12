@@ -15,12 +15,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../config/constants';
-import { adminAPI, newsAPI, listingsAPI, reportsAPI } from '../services/api';
+import { adminAPI, newsAPI, listingsAPI, reportsAPI, bazarAPI } from '../services/api';
 import { notificationsAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const { width } = Dimensions.get('window');
-const TABS = ['Overview', 'Users', 'Rishta', 'Reports', 'News', 'Notify', 'Storage'];
+const TABS = ['Overview', 'Users', 'Rishta', 'Traders', 'Reports', 'News', 'Notify', 'Storage'];
 
 export default function AdminDashboardScreen({ navigation }) {
   const { loading: authLoading } = useAuth();
@@ -45,6 +45,11 @@ export default function AdminDashboardScreen({ navigation }) {
   const [notifBody, setNotifBody] = useState('');
   const [notifSending, setNotifSending] = useState(false);
   const [notifStats, setNotifStats] = useState(null);
+  // Trader management
+  const [allTraders, setAllTraders] = useState([]);
+  const [pendingTraders, setPendingTraders] = useState([]);
+  const [presidentForm, setPresidentForm] = useState({ name: '', email: '', password: '' });
+  const [creatingPresident, setCreatingPresident] = useState(false);
 
   // Wait for auth token to load before fetching
   useEffect(() => {
@@ -83,6 +88,10 @@ export default function AdminDashboardScreen({ navigation }) {
       } else if (activeTab === 'Notify') {
         const res = await adminAPI.getNotificationStats();
         setNotifStats(res.data);
+      } else if (activeTab === 'Traders') {
+        const [allRes, pendRes] = await Promise.all([bazarAPI.getAllTraders(), bazarAPI.getPending()]);
+        setAllTraders(allRes.data.traders || []);
+        setPendingTraders(pendRes.data.traders || []);
       } else if (activeTab === 'Storage') {
         try {
           const [dbRes, storRes, cloudRes] = await Promise.all([
@@ -755,6 +764,68 @@ export default function AdminDashboardScreen({ navigation }) {
     </ScrollView>
   );
 
+  const renderTraders = () => (
+    <ScrollView style={{ flex: 1, padding: 12 }} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} colors={[COLORS.primary]} />}>
+      {/* Pending Approvals */}
+      <Text style={styles.sectionTitle}>Pending Approvals ({pendingTraders.length})</Text>
+      {pendingTraders.map(trader => (
+        <View key={trader.id} style={[styles.userCard, { borderLeftWidth: 3, borderLeftColor: COLORS.warning }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            {trader.photoUrl ? <Image source={{ uri: trader.photoUrl }} style={{ width: 40, height: 40, borderRadius: 20, marginRight: 10 }} /> : <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.gray, justifyContent: 'center', alignItems: 'center', marginRight: 10 }}><Text>🏪</Text></View>}
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '700', color: COLORS.text }}>{trader.fullName}</Text>
+              <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>{trader.shopName} - {trader.bazar?.name}</Text>
+              <Text style={{ fontSize: 11, color: COLORS.textLight }}>📞 {trader.phone} | {trader.user?.email}</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity style={{ flex: 1, backgroundColor: COLORS.success + '15', padding: 8, borderRadius: 8, alignItems: 'center' }} onPress={async () => { try { await bazarAPI.approveTrader(trader.id); Alert.alert('Done', 'Trader approved'); loadData(); } catch (e) { Alert.alert('Error', 'Failed'); } }}>
+              <Text style={{ color: COLORS.success, fontWeight: '700' }}>✓ Approve</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ flex: 1, backgroundColor: COLORS.error + '15', padding: 8, borderRadius: 8, alignItems: 'center' }} onPress={async () => { try { await bazarAPI.rejectTrader(trader.id); Alert.alert('Done', 'Trader rejected'); loadData(); } catch (e) { Alert.alert('Error', 'Failed'); } }}>
+              <Text style={{ color: COLORS.error, fontWeight: '700' }}>✗ Reject</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{ backgroundColor: COLORS.error + '10', padding: 8, borderRadius: 8 }} onPress={() => Alert.alert('Delete', 'Remove this trader?', [{ text: 'Cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => { try { await bazarAPI.deleteTrader(trader.id); loadData(); } catch (e) { Alert.alert('Error', 'Failed'); } } }])}>
+              <Text>🗑</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
+      {pendingTraders.length === 0 && <Text style={{ color: COLORS.textLight, textAlign: 'center', marginTop: 16 }}>No pending requests</Text>}
+
+      {/* All Traders */}
+      <Text style={[styles.sectionTitle, { marginTop: 20 }]}>All Traders ({allTraders.length})</Text>
+      {allTraders.map(trader => (
+        <View key={trader.id} style={styles.userCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '700', color: COLORS.text }}>{trader.fullName} - {trader.shopName}</Text>
+              <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>{trader.bazar?.name} | {trader.status}</Text>
+            </View>
+            <TouchableOpacity onPress={() => Alert.alert('Delete', 'Remove this trader?', [{ text: 'Cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => { try { await bazarAPI.deleteTrader(trader.id); loadData(); } catch (e) { Alert.alert('Error', 'Failed'); } } }])}>
+              <Ionicons name="trash" size={18} color={COLORS.error} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
+
+      {/* Create President */}
+      <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Create President Account</Text>
+      <View style={styles.userCard}>
+        <TextInput style={styles.notifInput} placeholder="President Name" value={presidentForm.name} onChangeText={v => setPresidentForm({ ...presidentForm, name: v })} placeholderTextColor={COLORS.textLight} />
+        <TextInput style={[styles.notifInput, { marginTop: 8 }]} placeholder="Email" value={presidentForm.email} onChangeText={v => setPresidentForm({ ...presidentForm, email: v })} keyboardType="email-address" autoCapitalize="none" placeholderTextColor={COLORS.textLight} />
+        <TextInput style={[styles.notifInput, { marginTop: 8 }]} placeholder="Password" value={presidentForm.password} onChangeText={v => setPresidentForm({ ...presidentForm, password: v })} secureTextEntry placeholderTextColor={COLORS.textLight} />
+        <TouchableOpacity style={[styles.sendNotifBtn, { marginTop: 12 }, creatingPresident && { opacity: 0.5 }]} disabled={creatingPresident} onPress={async () => {
+          if (!presidentForm.name || !presidentForm.email || !presidentForm.password) { Alert.alert('Required', 'Fill all fields'); return; }
+          try { setCreatingPresident(true); await bazarAPI.createPresident(presidentForm); Alert.alert('Done', 'President account created'); setPresidentForm({ name: '', email: '', password: '' }); } catch (e) { Alert.alert('Error', e.response?.data?.error || 'Failed'); } finally { setCreatingPresident(false); }
+        }}>
+          <Text style={styles.sendNotifBtnText}>{creatingPresident ? 'Creating...' : 'Create President'}</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={{ height: 30 }} />
+    </ScrollView>
+  );
+
   const renderTab = () => {
     if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>;
     switch (activeTab) {
@@ -762,6 +833,7 @@ export default function AdminDashboardScreen({ navigation }) {
       case 'Users': return renderUsers();
       case 'Rishta': return renderRishta();
       case 'Reports': return renderReports();
+      case 'Traders': return renderTraders();
       case 'News': return renderNews();
       case 'Notify': return renderNotifications();
       case 'Storage': return renderStorage();

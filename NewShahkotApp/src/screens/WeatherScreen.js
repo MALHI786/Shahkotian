@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { COLORS, SHAHKOT_CENTER } from '../config/constants';
 import { useLanguage } from '../context/LanguageContext';
+import AdBanner from '../components/AdBanner';
 
 // Weather condition codes mapping
 const getWeatherInfo = (code) => {
@@ -158,6 +159,8 @@ export default function WeatherScreen({ navigation }) {
           <Text style={styles.refreshBtn}>🔄</Text>
         </TouchableOpacity>
       </View>
+
+      <AdBanner />
 
       <ScrollView 
         style={styles.content}

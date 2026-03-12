@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../config/constants';
 import { useLanguage } from '../context/LanguageContext';
+import AdBanner from '../components/AdBanner';
 
 const HELPLINES = [
     // === EMERGENCY ===
@@ -92,6 +93,8 @@ export default function HelplineScreen({ navigation }) {
                 <Text style={styles.headerTitle}>{t('helplineTitle')}</Text>
                 <View style={{ width: 50 }} />
             </View>
+
+            <AdBanner />
 
             {/* Emergency banner */}
             <TouchableOpacity style={styles.emergencyBanner} onPress={() => callNumber('1122')}>

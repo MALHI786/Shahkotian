@@ -11,6 +11,7 @@ import {
 import { COLORS } from '../config/constants';
 import { notificationsAPI } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
+import AdBanner from '../components/AdBanner';
 
 export default function NotificationsScreen() {
   const { t } = useLanguage();
@@ -114,6 +115,8 @@ export default function NotificationsScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      <AdBanner />
 
       <FlatList
         data={notifications}

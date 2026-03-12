@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../config/constants';
 import { useLanguage } from '../context/LanguageContext';
+import AdBanner from '../components/AdBanner';
 
 // Complete Punjab Government Helplines
 const PUNJAB_HELPLINES = [
@@ -93,6 +94,8 @@ export default function GovtOfficesScreen({ navigation }) {
         <Text style={styles.headerTitle}>{t('govtTitle')}</Text>
         <View style={{ width: 50 }} />
       </View>
+
+      <AdBanner />
 
       {/* Emergency banner */}
       <TouchableOpacity style={styles.emergencyBanner} onPress={() => callNumber('1122')}>

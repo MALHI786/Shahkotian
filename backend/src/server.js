@@ -29,6 +29,7 @@ const doctorRoutes = require('./routes/doctors');
 const restaurantRoutes = require('./routes/restaurants');
 const clothBrandRoutes = require('./routes/clothBrands');
 const appointmentRoutes = require('./routes/appointments');
+const bazarRoutes = require('./routes/bazar');
 
 const app = express();
 
@@ -138,6 +139,7 @@ app.use('/api/jobs', jobRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/cloth-brands', clothBrandRoutes);
+app.use('/api/bazar', bazarRoutes);
 
 // 404 handler
 app.use((req, res) => {

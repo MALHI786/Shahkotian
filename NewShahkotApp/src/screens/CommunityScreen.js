@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { COLORS } from '../config/constants';
 import { useLanguage } from '../context/LanguageContext';
+import AdBanner from '../components/AdBanner';
 
 const COMMUNITY_TABS = [
   { key: 'rishta', labelKey: 'rishta', icon: '💑', descKey: 'findYourMatch' },
@@ -21,6 +22,8 @@ export default function CommunityScreen({ navigation }) {
         <Text style={styles.headerTitle}>{t('communityTitle')}</Text>
         <Text style={styles.headerSub}>{t('connectShahkot')}</Text>
       </View>
+
+      <AdBanner />
 
       {/* Feature Cards */}
       <ScrollView contentContainerStyle={styles.content}>
