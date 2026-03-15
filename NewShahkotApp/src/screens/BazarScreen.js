@@ -1039,6 +1039,7 @@ export default function BazarScreen() {
               </TouchableOpacity>
             ))}
           </View>
+        )}
 
         {showReactions === item.id && (
           <View style={[styles.reactionsPicker, isOwn && { alignSelf: 'flex-end' }]}>
